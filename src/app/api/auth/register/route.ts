@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (err) {
     console.error(`[Auth Register Proxy Error] Failed to reach backend at "${backendUrl}/auth/register":`, err);
-    return Response.json({ message: `Unable to connect to backend server at ${backendUrl}.` }, { status: 502 });
+    return Response.json({ message: "Unable to connect to the server. Please check your connection or try again later." }, { status: 502 });
   }
 
   const data = await res.json();

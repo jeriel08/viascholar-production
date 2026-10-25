@@ -70,7 +70,7 @@ export function DocumentListItem({
       {doc.status === "PENDING" && (
         <div className="flex items-center gap-2 rounded-lg bg-sky-50 px-3 py-2 text-xs text-sky-800 dark:bg-sky-950/40 dark:text-sky-300">
           <Sparkles className="size-3.5 shrink-0 text-amber-500 animate-pulse" />
-          <span>Extracting grades with AI (15–30s). Hang tight!</span>
+          <span>Analyzing document and extracting grades (15–30s). Please wait...</span>
         </div>
       )}
 

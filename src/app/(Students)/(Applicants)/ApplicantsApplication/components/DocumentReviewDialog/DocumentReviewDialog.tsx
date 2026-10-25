@@ -223,7 +223,7 @@ export function DocumentReviewDialog({
           </div>
           <h4 className="text-sm font-semibold text-navy">AI is reading your document...</h4>
           <p className="mt-1.5 max-w-sm text-xs leading-relaxed text-muted-foreground">
-            Our Vision AI is extracting your academic year, general average, and subject grades (10–25s). Hang tight!
+            Our Vision AI is extracting your academic year, general average, and subject grades (10–25s). Please wait a moment.
           </p>
           {syncMessage && <p className="mt-2 text-xs font-medium text-sky-800 dark:text-sky-300">{syncMessage}</p>}
           <div className="mt-4 flex flex-wrap items-center justify-center gap-2">

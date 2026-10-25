@@ -39,7 +39,7 @@ async function proxyRequest(method: string, path: string, request: NextRequest) 
     console.error(`[API Proxy Error] Failed to proxy ${method} to "${targetUrl.toString()}":`, err);
     return new Response(
       JSON.stringify({
-        message: `Unable to reach backend server at ${backendBase}. Please ensure the backend is running and accessible.`,
+        message: "Unable to connect to the server. Please check your connection or try again later.",
       }),
       {
         status: 502,

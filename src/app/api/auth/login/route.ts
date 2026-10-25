@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     console.error(`[Auth Login Proxy Error] Failed to reach backend at "${backendUrl}/auth/login":`, err);
     return Response.json(
       {
-        message: `Unable to connect to the backend server at ${backendUrl}. Please check that the backend is deployed and running.`,
+        message: "Unable to connect to the server. Please check your connection or try again later.",
       },
       { status: 502 },
     );
