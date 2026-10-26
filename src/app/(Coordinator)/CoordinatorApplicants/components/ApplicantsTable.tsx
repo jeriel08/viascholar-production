@@ -1,6 +1,6 @@
 "use client";
 
-import { Eye, RotateCcw, ScrollText, Users } from "lucide-react";
+import { Eye, FileSignature, RotateCcw, ScrollText, Users } from "lucide-react";
 import type { Applicant } from "@/components/Coordinatorshared";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -115,9 +115,25 @@ export function ApplicantsTable({
                       {a.applied}
                     </TableCell>
                     <TableCell className="py-3 text-center!">
-                      <Badge variant={getStageVariant(a.stage)} className="h-6 px-2.5 text-xs!">
-                        {a.stage}
-                      </Badge>
+                      <div className="flex flex-col items-center justify-center gap-1">
+                        <Badge variant={getStageVariant(a.stage)} className="h-6 px-2.5 text-xs!">
+                          {a.stage}
+                        </Badge>
+                        {a.stage === "Accepted" && a.hasContract && a.contractStatus === "PENDING" && (
+                          <Badge
+                            variant="outline"
+                            className="inline-flex items-center gap-1 h-5 px-1.5 text-[0.65rem]! font-medium border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-700/50 dark:bg-amber-950/40 dark:text-amber-300"
+                          >
+                            <FileSignature className="size-3 shrink-0 text-amber-600 dark:text-amber-400" />
+                            <span>Signing Contract</span>
+                          </Badge>
+                        )}
+                        {a.stage === "Accepted" && !a.hasContract && (
+                          <span className="text-[0.65rem] text-muted-foreground whitespace-nowrap">
+                            Contract pending
+                          </span>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="py-3 pr-6 text-center!">
                       <Button

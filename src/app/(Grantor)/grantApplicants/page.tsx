@@ -47,17 +47,22 @@ export default function GrantApplicantsPage() {
     setLoadError("");
     try {
       const [rows, contracts] = await Promise.all([listApplications(), listContracts().catch(() => [])]);
-      const contractProfileIds = new Set(contracts.map((c) => c.scholar_profile_id));
-      // Hide the applicant if they are ACCEPTED and a contract was issued to them
+      const contractsByProfileId = new Map(contracts.map((c) => [c.scholar_profile_id, c]));
+
+      // Hide the applicant only if they are ACCEPTED and their contract is already SIGNED
+      // (signing promotes them to Scholar and transitions them to the Scholars Monitor).
+      // If their contract is PENDING, they are in the "Contract Signing" stage and must remain visible.
       const activeRows = rows.filter((r) => {
         const isAccepted = r.status === "APPROVED" || r.stage.trim().toLowerCase() === "accepted";
-        const hasContract =
-          contractProfileIds.has(r.scholar_profile_id) ||
-          Boolean(r.scholar_profile?.contracts && r.scholar_profile.contracts.length > 0) ||
-          (r.scholar_profile?._count?.contracts ?? 0) > 0;
-        return !(isAccepted && hasContract);
+        const matchingContract =
+          contractsByProfileId.get(r.scholar_profile_id) ??
+          r.scholar_profile?.contracts?.[0];
+        const isSigned = matchingContract?.status === "SIGNED";
+        return !(isAccepted && isSigned);
       });
-      const mapped = activeRows.map(mapApplicationToApplicant);
+      const mapped = activeRows.map((r) =>
+        mapApplicationToApplicant(r, contractsByProfileId.get(r.scholar_profile_id)),
+      );
       setApplicants(mapped);
       setSelected((prev) => (prev ? (mapped.find((a) => a.id === prev.id) ?? null) : null));
     } catch (err) {

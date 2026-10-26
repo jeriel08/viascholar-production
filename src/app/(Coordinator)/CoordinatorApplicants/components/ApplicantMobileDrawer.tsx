@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, ArrowRight, CalendarClock, FileText, RotateCcw, User, X } from "lucide-react";
+import { AlertCircle, ArrowRight, CalendarClock, FileSignature, FileText, RotateCcw, User, X } from "lucide-react";
 import { useState } from "react";
 import { cn } from "cn";
 import type { Applicant, Stage } from "@/components/Coordinatorshared";
@@ -94,7 +94,7 @@ export function ApplicantMobileDrawer({
                   <FileText className="size-4.5" />
                 </span>
                 <div className="min-w-0">
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex flex-wrap items-center gap-1.5">
                     <h2 className="truncate text-sm font-bold text-slate-900">{applicant.name}</h2>
                     <Badge
                       variant={getStageVariant(applicant.stage)}
@@ -102,6 +102,15 @@ export function ApplicantMobileDrawer({
                     >
                       {applicant.stage}
                     </Badge>
+                    {applicant.stage === "Accepted" && applicant.hasContract && applicant.contractStatus === "PENDING" && (
+                      <Badge
+                        variant="outline"
+                        className="inline-flex items-center gap-1 h-5 px-1.5 text-[0.65rem] font-medium border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-700/50 dark:bg-amber-950/40 dark:text-amber-300"
+                      >
+                        <FileSignature className="size-3 text-amber-600 dark:text-amber-400" />
+                        Signing Contract
+                      </Badge>
+                    )}
                   </div>
                   <p className="truncate text-[0.68rem] text-slate-500">
                     {applicant.course} · {applicant.year}

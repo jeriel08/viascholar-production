@@ -632,6 +632,9 @@ export interface Applicant {
   documentsCount?: number;
   hasContract?: boolean;
   contractStatus?: string | null;
+  contractNumber?: string | null;
+  contractId?: number | null;
+  contractDocumentUrl?: string | null;
 }
 
 export interface ScheduledInterview {

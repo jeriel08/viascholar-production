@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
-import { AlertCircle, ArrowRight, CalendarClock, FileText, RotateCcw, X } from "lucide-react";
+import { AlertCircle, ArrowRight, CalendarClock, FileSignature, FileText, RotateCcw, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { Applicant, Stage } from "@/components/Coordinatorshared";
 import { Badge } from "@/components/ui/badge";
@@ -142,6 +142,15 @@ export function ApplicantDialog({
                       <Badge variant={getStageVariant(applicant.stage)} className="h-6 px-2.5 text-xs!">
                         {applicant.stage}
                       </Badge>
+                      {applicant.stage === "Accepted" && applicant.hasContract && applicant.contractStatus === "PENDING" && (
+                        <Badge
+                          variant="outline"
+                          className="inline-flex items-center gap-1.5 h-6 px-2.5 text-xs! font-medium border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-700/50 dark:bg-amber-950/40 dark:text-amber-300"
+                        >
+                          <FileSignature className="size-3.5 text-amber-600 dark:text-amber-400" />
+                          Signing Contract
+                        </Badge>
+                      )}
                     </div>
                     <p className="text-xs text-slate-500 mt-0.5">
                       {applicant.course} · {applicant.year} · Applied on {applicant.applied}

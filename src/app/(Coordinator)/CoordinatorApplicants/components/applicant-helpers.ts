@@ -1,5 +1,6 @@
 import type { Applicant, Stage } from "@/components/Coordinatorshared";
 import type { ApplicationStatus, ApplicationWithProfile } from "@/lib/api/applications";
+import type { Contract } from "@/lib/api/contracts";
 
 export type StageFilter = Stage | "all";
 
@@ -137,11 +138,17 @@ export function getInitials(firstName?: string, lastName?: string): string {
   return `${firstName?.[0] ?? ""}${lastName?.[0] ?? ""}`.toUpperCase() || "?";
 }
 
-export function mapApplicationToApplicant(row: ApplicationWithProfile): Applicant {
+export function mapApplicationToApplicant(
+  row: ApplicationWithProfile,
+  contract?: Contract | null | unknown,
+): Applicant {
   const p = row.scholar_profile;
   const firstName = p?.first_name ?? "";
   const lastName = p?.last_name ?? "";
   const name = `${firstName} ${lastName}`.trim() || `Applicant #${row.application_id}`;
+  const validContract =
+    contract && typeof contract === "object" && "contract_number" in contract ? (contract as Contract) : null;
+  const firstContract = validContract ?? p?.contracts?.[0];
   return {
     id: row.application_id,
     name,
@@ -164,8 +171,13 @@ export function mapApplicationToApplicant(row: ApplicationWithProfile): Applican
     relativeEmployee: p?.relative_employee ?? null,
     documentsCount: p?._count?.documents ?? 0,
     hasContract:
-      Boolean(p?.contracts && p.contracts.length > 0) || Boolean(p?._count?.contracts && p._count.contracts > 0),
-    contractStatus: p?.contracts?.[0]?.status ?? null,
+      Boolean(firstContract) ||
+      Boolean(p?.contracts && p.contracts.length > 0) ||
+      Boolean(p?._count?.contracts && p._count.contracts > 0),
+    contractStatus: firstContract?.status ?? p?.contracts?.[0]?.status ?? null,
+    contractNumber: firstContract?.contract_number ?? p?.contracts?.[0]?.contract_number ?? null,
+    contractId: firstContract?.contract_id ?? p?.contracts?.[0]?.contract_id ?? null,
+    contractDocumentUrl: validContract ? validContract.signed_document_url || validContract.document_url || null : null,
   };
 }
 

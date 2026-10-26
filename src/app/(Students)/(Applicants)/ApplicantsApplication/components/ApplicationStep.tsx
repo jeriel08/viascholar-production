@@ -35,12 +35,14 @@ function Field({
   label,
   required,
   error,
+  hint,
   children,
 }: {
   id: string;
   label: string;
   required?: boolean;
   error?: string;
+  hint?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -49,6 +51,7 @@ function Field({
         {label} {required && <span className="text-amber">*</span>}
       </Label>
       {children}
+      {hint && !error && <p className="mt-1.5 text-xs text-muted-foreground">{hint}</p>}
       {error && <p className="mt-1.5 text-xs font-medium text-destructive">{error}</p>}
     </div>
   );
@@ -87,7 +90,15 @@ export function ApplicationStep({ prefill, hasApplication, onSubmit }: Applicati
     try {
       await onSubmit(data);
     } catch (err) {
-      setServerError(err instanceof Error ? err.message : "Failed to submit application.");
+      const msg = err instanceof Error ? err.message : "Failed to submit application.";
+      if (
+        msg.toLowerCase().includes("relative employee") ||
+        msg.toLowerCase().includes("relative") ||
+        msg.toLowerCase().includes("1 scholar per employee")
+      ) {
+        setFieldErrors((prev) => ({ ...prev, relative_employee: msg }));
+      }
+      setServerError(msg);
     } finally {
       setSubmitting(false);
     }
@@ -201,10 +212,16 @@ export function ApplicationStep({ prefill, hasApplication, onSubmit }: Applicati
               className={FIELD_INPUT}
             />
           </Field>
-          <Field id="app-relative" label="Relative employed by partner" required error={fieldErrors.relative_employee}>
+          <Field
+            id="app-relative"
+            label="Relative employed by partner"
+            required
+            hint="Company policy allows only 1 scholar per employee."
+            error={fieldErrors.relative_employee}
+          >
             <Input
               id="app-relative"
-              placeholder="Full name, if any"
+              placeholder="Full name of relative employee"
               value={values.relative_employee}
               onChange={(e) => set("relative_employee", e.target.value)}
               className={FIELD_INPUT}
