@@ -75,6 +75,10 @@ export function getMyApplication() {
   return apiGet<Application>(`${B}/me`);
 }
 
+export function finalizeApplication() {
+  return apiPost<Application>(`${B}/me/finalize`);
+}
+
 export function requestReschedule(data: { reason: string; preferred_availability?: string }) {
   return apiPost<{ ok: boolean }>(`${B}/me/request-reschedule`, data);
 }

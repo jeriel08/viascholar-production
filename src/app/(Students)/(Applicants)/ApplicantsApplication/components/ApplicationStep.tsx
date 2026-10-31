@@ -3,16 +3,32 @@
 import { useEffect, useState } from "react";
 import { TRACKS } from "@/app/(Authentication)/components/data";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { type ApplicationFormValues, YEAR_LEVEL_OPTIONS } from "@/lib/validation";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  type ApplicationFormValues,
+  YEAR_LEVEL_OPTIONS,
+} from "@/lib/validation";
 import { parseApplicationForm } from "./wizard-helpers";
 
 interface ApplicationStepProps {
   prefill: Record<string, string>;
   hasApplication: boolean;
+  hasConfirmedDoc?: boolean;
   onSubmit: (values: ApplicationFormValues) => Promise<void>;
 }
 
@@ -47,18 +63,33 @@ function Field({
 }) {
   return (
     <div className="flex flex-col">
-      <Label htmlFor={id} className="mb-2 block text-sm! font-semibold text-navy">
+      <Label
+        htmlFor={id}
+        className="mb-2 block text-sm! font-semibold text-navy"
+      >
         {label} {required && <span className="text-amber">*</span>}
       </Label>
       {children}
-      {hint && !error && <p className="mt-1.5 text-xs text-muted-foreground">{hint}</p>}
-      {error && <p className="mt-1.5 text-xs font-medium text-destructive">{error}</p>}
+      {hint && !error && (
+        <p className="mt-1.5 text-xs text-muted-foreground">{hint}</p>
+      )}
+      {error && (
+        <p className="mt-1.5 text-xs font-medium text-destructive">{error}</p>
+      )}
     </div>
   );
 }
 
-export function ApplicationStep({ prefill, hasApplication, onSubmit }: ApplicationStepProps) {
-  const [values, setValues] = useState<Record<string, string>>({ ...EMPTY_VALUES, ...prefill });
+export function ApplicationStep({
+  prefill,
+  hasApplication,
+  hasConfirmedDoc = false,
+  onSubmit,
+}: ApplicationStepProps) {
+  const [values, setValues] = useState<Record<string, string>>({
+    ...EMPTY_VALUES,
+    ...prefill,
+  });
   const [pristine, setPristine] = useState(true);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [serverError, setServerError] = useState("");
@@ -90,7 +121,8 @@ export function ApplicationStep({ prefill, hasApplication, onSubmit }: Applicati
     try {
       await onSubmit(data);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed to submit application.";
+      const msg =
+        err instanceof Error ? err.message : "Failed to submit application.";
       if (
         msg.toLowerCase().includes("relative employee") ||
         msg.toLowerCase().includes("relative") ||
@@ -107,15 +139,26 @@ export function ApplicationStep({ prefill, hasApplication, onSubmit }: Applicati
   return (
     <Card className="rounded-[18px]! border-border bg-white shadow-xs">
       <CardHeader className="px-5 pt-5 pb-3 sm:px-8 sm:pt-7 sm:pb-4">
-        <CardTitle className="text-lg! font-bold text-navy">Scholarship application</CardTitle>
+        <CardTitle className="text-lg! font-bold text-navy">
+          Applicant Details
+        </CardTitle>
         <CardDescription className="text-sm!">
-          Tell us about yourself and where you study. You can update this later.
+          Provide your scholarship track, school information, and affiliation
+          details.
         </CardDescription>
       </CardHeader>
       <CardContent className="px-5 pb-5 sm:px-8 sm:pb-8">
         <form onSubmit={handleSubmit} className="flex flex-col gap-5 sm:gap-6">
-          <Field id="app-track" label="Scholarship track" required error={fieldErrors.scholarship_track}>
-            <Select value={values.scholarship_track} onValueChange={(v) => set("scholarship_track", v)}>
+          <Field
+            id="app-track"
+            label="Scholarship track"
+            required
+            error={fieldErrors.scholarship_track}
+          >
+            <Select
+              value={values.scholarship_track}
+              onValueChange={(v) => set("scholarship_track", v)}
+            >
               <SelectTrigger
                 id="app-track"
                 size="lg"
@@ -134,7 +177,12 @@ export function ApplicationStep({ prefill, hasApplication, onSubmit }: Applicati
             </Select>
           </Field>
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6">
-            <Field id="app-student-number" label="Student number" required error={fieldErrors.student_number}>
+            <Field
+              id="app-student-number"
+              label="Student number"
+              required
+              error={fieldErrors.student_number}
+            >
               <Input
                 id="app-student-number"
                 placeholder="2023-00123"
@@ -143,7 +191,11 @@ export function ApplicationStep({ prefill, hasApplication, onSubmit }: Applicati
                 className={FIELD_INPUT}
               />
             </Field>
-            <Field id="app-phone" label="Phone number" error={fieldErrors.phone_number}>
+            <Field
+              id="app-phone"
+              label="Phone number"
+              error={fieldErrors.phone_number}
+            >
               <Input
                 id="app-phone"
                 type="tel"
@@ -156,7 +208,12 @@ export function ApplicationStep({ prefill, hasApplication, onSubmit }: Applicati
             </Field>
           </div>
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6">
-            <Field id="app-course" label="Course of study" required error={fieldErrors.course_of_study}>
+            <Field
+              id="app-course"
+              label="Course of study"
+              required
+              error={fieldErrors.course_of_study}
+            >
               <Input
                 id="app-course"
                 placeholder="BS Information Technology"
@@ -165,8 +222,16 @@ export function ApplicationStep({ prefill, hasApplication, onSubmit }: Applicati
                 className={FIELD_INPUT}
               />
             </Field>
-            <Field id="app-year-level" label="Current year level" required error={fieldErrors.current_year_level}>
-              <Select value={values.current_year_level} onValueChange={(v) => set("current_year_level", v)}>
+            <Field
+              id="app-year-level"
+              label="Current year level"
+              required
+              error={fieldErrors.current_year_level}
+            >
+              <Select
+                value={values.current_year_level}
+                onValueChange={(v) => set("current_year_level", v)}
+              >
                 <SelectTrigger
                   id="app-year-level"
                   size="lg"
@@ -177,7 +242,11 @@ export function ApplicationStep({ prefill, hasApplication, onSubmit }: Applicati
                 </SelectTrigger>
                 <SelectContent>
                   {YEAR_LEVEL_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value} className="text-sm!">
+                    <SelectItem
+                      key={opt.value}
+                      value={opt.value}
+                      className="text-sm!"
+                    >
                       {opt.label}
                     </SelectItem>
                   ))}
@@ -185,7 +254,12 @@ export function ApplicationStep({ prefill, hasApplication, onSubmit }: Applicati
               </Select>
             </Field>
           </div>
-          <Field id="app-school-name" label="School name" required error={fieldErrors.school_name}>
+          <Field
+            id="app-school-name"
+            label="School name"
+            required
+            error={fieldErrors.school_name}
+          >
             <Input
               id="app-school-name"
               placeholder="University of Mindanao"
@@ -194,7 +268,12 @@ export function ApplicationStep({ prefill, hasApplication, onSubmit }: Applicati
               className={FIELD_INPUT}
             />
           </Field>
-          <Field id="app-student-address" label="Home address" required error={fieldErrors.student_address}>
+          <Field
+            id="app-student-address"
+            label="Home address"
+            required
+            error={fieldErrors.student_address}
+          >
             <Input
               id="app-student-address"
               placeholder="Street, barangay, city"
@@ -203,7 +282,12 @@ export function ApplicationStep({ prefill, hasApplication, onSubmit }: Applicati
               className={FIELD_INPUT}
             />
           </Field>
-          <Field id="app-school-address" label="School address" required error={fieldErrors.school_address}>
+          <Field
+            id="app-school-address"
+            label="School address"
+            required
+            error={fieldErrors.school_address}
+          >
             <Input
               id="app-school-address"
               placeholder="Street, barangay, city"
@@ -235,8 +319,18 @@ export function ApplicationStep({ prefill, hasApplication, onSubmit }: Applicati
           )}
 
           <div className="flex justify-end pt-4 sm:pt-5 border-t border-border/60 mt-1">
-            <Button type="submit" className="h-11 px-6 text-sm! shadow-xs" disabled={submitting}>
-              {submitting ? "Submitting..." : hasApplication ? "Save changes" : "Submit application"}
+            <Button
+              type="submit"
+              className="h-11 px-6 text-sm! font-semibold shadow-xs"
+              disabled={submitting}
+            >
+              {submitting
+                ? hasConfirmedDoc
+                  ? "Saving changes..."
+                  : "Saving details..."
+                : hasConfirmedDoc
+                  ? "Save changes"
+                  : "Next: Upload Documents"}
             </Button>
           </div>
         </form>

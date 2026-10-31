@@ -4,13 +4,27 @@
 import { useRef, useState } from "react";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { type GradeItem, retryDocumentOcr, type ScholarDocument } from "@/lib/api/documents";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  type GradeItem,
+  retryDocumentOcr,
+  type ScholarDocument,
+} from "@/lib/api/documents";
 import { DocumentListItem } from "./DocumentListItem";
 import { DocumentReviewDialog } from "./DocumentReviewDialog";
 import { DocumentStatusBanner } from "./DocumentStatusBanner";
 import { DocumentUploadCard } from "./DocumentUploadCard";
-import { getDefaultDocumentType, isInvalidOrMismatchedDoc, validateChosenFiles } from "./wizard-helpers";
+import {
+  getDefaultDocumentType,
+  isInvalidOrMismatchedDoc,
+  validateChosenFiles,
+} from "./wizard-helpers";
 
 interface DocumentsStepProps {
   documents: ScholarDocument[];
@@ -26,8 +40,12 @@ interface DocumentsStepProps {
       grade_items?: GradeItem[];
     },
   ) => Promise<void>;
-  onContinue: () => void;
+  onBack: () => void;
+  onSubmitApplication: () => void;
+  onViewStatus?: () => void;
   hasConfirmed: boolean;
+  isSubmitted?: boolean;
+  isSubmittingApp?: boolean;
 }
 
 export function DocumentsStep({
@@ -37,26 +55,40 @@ export function DocumentsStep({
   onReplace,
   onDelete,
   onConfirm,
-  onContinue,
+  onBack,
+  onSubmitApplication,
+  onViewStatus,
   hasConfirmed,
+  isSubmitted = false,
+  isSubmittingApp = false,
 }: DocumentsStepProps) {
   const [picked, setPicked] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const [phase, setPhase] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [actingId, setActingId] = useState<number | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<ScholarDocument | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ScholarDocument | null>(
+    null,
+  );
   const [deleting, setDeleting] = useState(false);
-  const [reviewTarget, setReviewTarget] = useState<ScholarDocument | null>(null);
+  const [reviewTarget, setReviewTarget] = useState<ScholarDocument | null>(
+    null,
+  );
   const replaceInputRef = useRef<HTMLInputElement>(null);
   const [replaceTarget, setReplaceTarget] = useState<number | null>(null);
-  const [confirmReplaceTarget, setConfirmReplaceTarget] = useState<ScholarDocument | null>(null);
+  const [confirmReplaceTarget, setConfirmReplaceTarget] =
+    useState<ScholarDocument | null>(null);
   const [retryingId, setRetryingId] = useState<number | null>(null);
 
   const targetDocType = getDefaultDocumentType(currentYearLevel);
-  const mismatchedDoc = documents.find((d) => isInvalidOrMismatchedDoc(d, currentYearLevel));
+  const mismatchedDoc = documents.find((d) =>
+    isInvalidOrMismatchedDoc(d, currentYearLevel),
+  );
   const hasConfirmedDoc =
-    hasConfirmed || documents.some((d) => d.status === "STUDENT_CONFIRMED" || d.status === "VERIFIED");
+    hasConfirmed ||
+    documents.some(
+      (d) => d.status === "STUDENT_CONFIRMED" || d.status === "VERIFIED",
+    );
   const hasNeedsReupload = documents.some((d) => d.status === "NEEDS_REUPLOAD");
   const shouldShowUploadCard = !hasConfirmedDoc || hasNeedsReupload;
 
@@ -66,7 +98,8 @@ export function DocumentsStep({
       setError("");
       await retryDocumentOcr(docId);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to retry AI extraction.";
+      const msg =
+        err instanceof Error ? err.message : "Failed to retry AI extraction.";
       setError(msg);
     } finally {
       setRetryingId(null);
@@ -94,11 +127,17 @@ export function DocumentsStep({
     setUploading(true);
     setError("");
     try {
-      setPhase(picked.length > 1 ? "Uploading files (merging all pages into 1 PDF)..." : "Uploading & analyzing...");
+      setPhase(
+        picked.length > 1
+          ? "Uploading files (merging all pages into 1 PDF)..."
+          : "Uploading & analyzing...",
+      );
       await onUpload(picked, targetDocType);
       setPicked([]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to upload documents.");
+      setError(
+        err instanceof Error ? err.message : "Failed to upload documents.",
+      );
     } finally {
       setUploading(false);
       setPhase(null);
@@ -119,7 +158,9 @@ export function DocumentsStep({
     try {
       await onReplace(replaceTarget, files);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to replace document.");
+      setError(
+        err instanceof Error ? err.message : "Failed to replace document.",
+      );
     } finally {
       setActingId(null);
       setReplaceTarget(null);
@@ -138,7 +179,9 @@ export function DocumentsStep({
       await onDelete(deleteTarget.document_id);
       setDeleteTarget(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete document.");
+      setError(
+        err instanceof Error ? err.message : "Failed to delete document.",
+      );
       setDeleteTarget(null);
     } finally {
       setDeleting(false);
@@ -170,8 +213,12 @@ export function DocumentsStep({
 
       <Card className="rounded-[18px]! border-border bg-white shadow-xs">
         <CardHeader>
-          <CardTitle className="text-lg! text-navy">My documents ({documents.length})</CardTitle>
-          <CardDescription className="text-sm!">Confirm each document so coordinators can verify it.</CardDescription>
+          <CardTitle className="text-lg! text-navy">
+            My documents ({documents.length})
+          </CardTitle>
+          <CardDescription className="text-sm!">
+            Confirm each document so coordinators can verify it.
+          </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           {documents.length === 0 ? (
@@ -206,10 +253,47 @@ export function DocumentsStep({
         </CardContent>
       </Card>
 
-      <div className="flex justify-end">
-        <Button type="button" className="h-11 px-6 text-sm! shadow-xs" onClick={onContinue}>
-          Continue to status
+      <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
+        <Button
+          type="button"
+          variant="outline"
+          className="h-11 px-5 text-sm! font-medium shadow-xs"
+          onClick={onBack}
+        >
+          Back to Details
         </Button>
+
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          {!isSubmitted && !hasConfirmedDoc && (
+            <p className="text-xs text-muted-foreground text-center sm:text-right">
+              {documents.some((d) => d.status === "PENDING")
+                ? "Analyzing document with AI. Please wait..."
+                : documents.some((d) => d.status === "PASSED_PRECHECK")
+                  ? "Please review and confirm your extracted grades to submit."
+                  : "Upload and confirm your required document to submit your application."}
+            </p>
+          )}
+          {isSubmitted ? (
+            <Button
+              type="button"
+              className="h-11 px-7 text-sm! font-semibold shadow-xs"
+              onClick={onViewStatus ?? onBack}
+            >
+              View Application Status
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              className="h-11 px-7 text-sm! font-semibold shadow-xs"
+              disabled={!hasConfirmedDoc || isSubmittingApp}
+              onClick={onSubmitApplication}
+            >
+              {isSubmittingApp
+                ? "Submitting application..."
+                : "Submit Application"}
+            </Button>
+          )}
+        </div>
       </div>
 
       <ConfirmDialog
@@ -237,7 +321,11 @@ export function DocumentsStep({
       <ConfirmDialog
         open={deleteTarget !== null}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
-        title={deleteTarget?.status === "PASSED_PRECHECK" ? "Delete pre-checked document?" : "Delete document?"}
+        title={
+          deleteTarget?.status === "PASSED_PRECHECK"
+            ? "Delete pre-checked document?"
+            : "Delete document?"
+        }
         description={
           deleteTarget
             ? deleteTarget.status === "PASSED_PRECHECK"

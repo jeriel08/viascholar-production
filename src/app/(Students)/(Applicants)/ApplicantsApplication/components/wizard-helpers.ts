@@ -5,7 +5,7 @@ import { type ApplicationFormValues, applicationSchema } from "@/lib/validation"
 export type WizardStep = 1 | 2 | 3;
 
 export const WIZARD_STEPS: Array<{ step: WizardStep; label: string; sub: string }> = [
-  { step: 1, label: "Application", sub: "Your details" },
+  { step: 1, label: "Applicant Details", sub: "Personal & school info" },
   { step: 2, label: "Documents", sub: "Form 138 / TOR" },
   { step: 3, label: "Status", sub: "Track progress" },
 ];
@@ -14,6 +14,7 @@ export const WIZARD_STEPS: Array<{ step: WizardStep; label: string; sub: string 
 export function resolveStep(app: Application | null, docs: ScholarDocument[]): WizardStep {
   if (!app) return 1;
   if (app.status === "REJECTED" || app.status === "APPROVED") return 3;
+  if (app.stage === "Draft") return 2;
   const progressed = docs.some((d) => d.status === "STUDENT_CONFIRMED" || d.status === "VERIFIED");
   return progressed ? 3 : 2;
 }
@@ -159,7 +160,7 @@ export function getDefaultDocumentType(yearLevel: number = 1): string {
 
 export function getWizardSteps(yearLevel: number = 1): Array<{ step: WizardStep; label: string; sub: string }> {
   return [
-    { step: 1, label: "Application", sub: "Your details" },
+    { step: 1, label: "Applicant Details", sub: "Personal & school info" },
     { step: 2, label: "Documents", sub: yearLevel >= 2 ? "Transcript (TOR)" : "Form 138 / Form 9" },
     { step: 3, label: "Status", sub: "Track progress" },
   ];
