@@ -241,7 +241,7 @@ export function GrantApplicantDialog({
                         <p className={SECTION_LABEL}>Academic & Institution Details</p>
                         <dl className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2 md:grid-cols-3">
                           <DetailItem label="Scholarship Track" value={applicant.track || "—"} />
-                          <DetailItem label="Course of Study" value={applicant.course || "—"} />
+                          <DetailItem label="Program" value={applicant.course || "—"} />
                           <DetailItem label="Current Year Level" value={applicant.year || "—"} />
                           <DetailItem
                             label="General Weighted Average (GWA)"

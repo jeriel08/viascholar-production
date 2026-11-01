@@ -1,5 +1,6 @@
 import type { ActiveScholar } from "@/components/Coordinatorshared";
 import { apiGet, apiPatch, apiPost, apiPut } from "../api";
+import { compressDocumentImage } from "../image-compression";
 
 const B = "/api/proxy/academic-baseline";
 const S = "/api/proxy/settings";
@@ -164,9 +165,19 @@ export async function selectOrProposeSchool(
 export async function uploadProspectus(
   formData: FormData,
 ): Promise<{ message: string; prospectus: ScholarProspectus; academic_baseline_status: string }> {
+  const preparedFormData = new FormData();
+  for (const [key, val] of formData.entries()) {
+    if (val instanceof File) {
+      const compressed = await compressDocumentImage(val);
+      preparedFormData.append(key, compressed);
+    } else {
+      preparedFormData.append(key, val);
+    }
+  }
+
   return apiPost<{ message: string; prospectus: ScholarProspectus; academic_baseline_status: string }>(
     `${B}/upload-prospectus`,
-    formData,
+    preparedFormData,
   );
 }
 
@@ -185,13 +196,23 @@ export async function uploadHistoricalCcg(formData: FormData): Promise<{
   prospectus: ScholarProspectus;
   academic_baseline_status: string;
 }> {
+  const preparedFormData = new FormData();
+  for (const [key, val] of formData.entries()) {
+    if (val instanceof File) {
+      const compressed = await compressDocumentImage(val);
+      preparedFormData.append(key, compressed);
+    } else {
+      preparedFormData.append(key, val);
+    }
+  }
+
   return apiPost<{
     message: string;
     matched_credited: Array<{ subject_code: string; grade: number; title: string }>;
     unmapped_items: Array<{ subject_code: string; grade: number }>;
     prospectus: ScholarProspectus;
     academic_baseline_status: string;
-  }>(`${B}/upload-historical-ccg`, formData);
+  }>(`${B}/upload-historical-ccg`, preparedFormData);
 }
 
 // 6. Submit for review

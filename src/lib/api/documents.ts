@@ -1,4 +1,5 @@
 import { apiDelete, apiGet, apiPatch, apiPost, apiPut } from "../api";
+import { compressDocumentFiles } from "../image-compression";
 
 const B = "/api/proxy/documents";
 
@@ -106,19 +107,21 @@ export interface GradeReport {
   } | null;
 }
 
-export function uploadDocuments(files: File[], documentType: string) {
+export async function uploadDocuments(files: File[], documentType: string) {
+  const preparedFiles = await compressDocumentFiles(files);
   const form = new FormData();
-  for (const file of files) {
+  for (const file of preparedFiles) {
     form.append("files", file);
   }
   form.append("document_type", documentType);
   return apiPost<ScholarDocument>(`${B}/upload`, form);
 }
 
-export function replaceDocument(id: number, files: File[] | File) {
-  const form = new FormData();
+export async function replaceDocument(id: number, files: File[] | File) {
   const list = Array.isArray(files) ? files : [files];
-  for (const file of list) {
+  const preparedFiles = await compressDocumentFiles(list);
+  const form = new FormData();
+  for (const file of preparedFiles) {
     form.append("files", file);
   }
   return apiPut<ScholarDocument>(`${B}/${id}/replace`, form);

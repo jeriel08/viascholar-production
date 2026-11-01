@@ -1,4 +1,5 @@
 import { apiDelete, apiGet, apiPost } from "../api";
+import { compressDocumentImage } from "../image-compression";
 import type { ScholarProspectus, SchoolGradingSystem } from "./baseline";
 
 const E = "/api/proxy/term-enrollment";
@@ -188,8 +189,9 @@ export async function getCurrentEnrollment(academicYear?: string, semester?: str
 
 // 2. Upload COR document
 export async function uploadCorDocument(file: File): Promise<ExtractedEnrollmentResponse> {
+  const preparedFile = await compressDocumentImage(file);
   const formData = new FormData();
-  formData.append("files", file);
+  formData.append("files", preparedFile);
 
   const res = await fetch(`${E}/upload-cor`, {
     method: "POST",
@@ -204,8 +206,9 @@ export async function uploadCorDocument(file: File): Promise<ExtractedEnrollment
 
 // 3. Upload SOA document
 export async function uploadSoaDocument(file: File): Promise<ExtractedEnrollmentResponse> {
+  const preparedFile = await compressDocumentImage(file);
   const formData = new FormData();
-  formData.append("files", file);
+  formData.append("files", preparedFile);
 
   const res = await fetch(`${E}/upload-soa`, {
     method: "POST",
@@ -220,8 +223,9 @@ export async function uploadSoaDocument(file: File): Promise<ExtractedEnrollment
 
 // 4. Upload Consolidated COR+SOA document
 export async function uploadConsolidatedDocument(file: File): Promise<ExtractedEnrollmentResponse> {
+  const preparedFile = await compressDocumentImage(file);
   const formData = new FormData();
-  formData.append("files", file);
+  formData.append("files", preparedFile);
 
   const res = await fetch(`${E}/upload-consolidated`, {
     method: "POST",

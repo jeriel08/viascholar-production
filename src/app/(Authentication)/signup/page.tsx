@@ -3,11 +3,11 @@
 import { cn } from "cn";
 import { ArrowRight, Loader2, Lock, Mail, Phone, User } from "lucide-react";
 import Link from "next/link";
-import { type FormEvent, useState } from "react";
+import { type ClipboardEvent, type FormEvent, type KeyboardEvent, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/contexts/AuthContext";
-import { getPasswordError } from "@/lib/validation";
+import { formatPhilippinePhoneNumber, signUpSchema } from "@/lib/validation";
 import { AuthShell } from "../components/AuthShell";
 import { CheckboxField } from "../components/CheckboxField";
 import { InputField } from "../components/InputField";
@@ -25,10 +25,12 @@ function SignUpForm() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [pasteBlocked, setPasteBlocked] = useState(false);
   const [agree, setAgree] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [errors, setErrors] = useState<Record<string, boolean>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const clearError = (field: string) => {
     if (errors[field]) {
@@ -41,46 +43,66 @@ function SignUpForm() {
     if (error) setError("");
   };
 
+  const handleFirstNameChange = (val: string) => {
+    // Strip numerical characters
+    const clean = val.replace(/[0-9]/g, "");
+    setFirstName(clean);
+    clearError("firstName");
+  };
+
+  const handleLastNameChange = (val: string) => {
+    // Strip numerical characters
+    const clean = val.replace(/[0-9]/g, "");
+    setLastName(clean);
+    clearError("lastName");
+  };
+
+  const handleNameKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    // Block numbers 0-9 from key press
+    if (/^[0-9]$/.test(e.key)) {
+      e.preventDefault();
+    }
+  };
+
+  const handlePhoneChange = (val: string) => {
+    const formatted = formatPhilippinePhoneNumber(val);
+    setPhone(formatted);
+    clearError("phone");
+  };
+
+  const handleConfirmPaste = (e: ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    setPasteBlocked(true);
+    setTimeout(() => setPasteBlocked(false), 4000);
+  };
+
+  const hasConfirm = confirm.length > 0;
+  const isConfirmMatch = hasConfirm && password.length > 0 && confirm === password;
+  const isConfirmMismatch = hasConfirm && confirm !== password;
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const newErrors: Record<string, boolean> = {};
 
-    if (!firstName.trim()) newErrors.firstName = true;
-    if (!lastName.trim()) newErrors.lastName = true;
-    if (!email.trim()) newErrors.email = true;
-    if (!phone.trim()) {
-      newErrors.phone = true;
-    } else if ((phone.match(/[0-9]/g) ?? []).length < 7) {
-      newErrors.phone = true;
-      setErrors(newErrors);
-      setError("Please enter a valid phone number.");
-      return;
-    }
-    if (!password.trim()) newErrors.password = true;
-    if (!confirm.trim()) newErrors.confirm = true;
+    const parseResult = signUpSchema.safeParse({
+      firstName,
+      lastName,
+      email,
+      phone,
+      password,
+      confirm,
+      agree,
+    });
 
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      setError("Please fill in all required fields.");
-      return;
-    }
-
-    const passwordError = getPasswordError(password);
-    if (passwordError) {
-      setErrors({ password: true });
-      setError(passwordError);
-      return;
-    }
-
-    if (password !== confirm) {
-      setErrors({ password: true, confirm: true });
-      setError("Passwords do not match.");
-      return;
-    }
-
-    if (!agree) {
-      setErrors({ agree: true });
-      setError("Please agree to the Terms and Privacy Policy to continue.");
+    if (!parseResult.success) {
+      const fieldErrors: Record<string, string> = {};
+      for (const issue of parseResult.error.issues) {
+        const fieldName = issue.path[0]?.toString() || "form";
+        if (!fieldErrors[fieldName]) {
+          fieldErrors[fieldName] = issue.message;
+        }
+      }
+      setErrors(fieldErrors);
+      setError(parseResult.error.issues[0]?.message || "Please fix the errors below.");
       return;
     }
 
@@ -90,11 +112,11 @@ function SignUpForm() {
 
     try {
       await register({
-        email,
-        password,
-        first_name: firstName.trim(),
-        last_name: lastName.trim(),
-        phone_number: phone.trim(),
+        email: parseResult.data.email,
+        password: parseResult.data.password,
+        first_name: parseResult.data.firstName,
+        last_name: parseResult.data.lastName,
+        phone_number: parseResult.data.phone,
       });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Registration failed. Please try again.";
@@ -114,10 +136,9 @@ function SignUpForm() {
           autoComplete="given-name"
           value={firstName}
           hasError={!!errors.firstName}
-          onChange={(val) => {
-            setFirstName(val);
-            clearError("firstName");
-          }}
+          errorText={errors.firstName}
+          onKeyDown={handleNameKeyDown}
+          onChange={handleFirstNameChange}
         />
         <InputField
           id="lastName"
@@ -127,10 +148,9 @@ function SignUpForm() {
           autoComplete="family-name"
           value={lastName}
           hasError={!!errors.lastName}
-          onChange={(val) => {
-            setLastName(val);
-            clearError("lastName");
-          }}
+          errorText={errors.lastName}
+          onKeyDown={handleNameKeyDown}
+          onChange={handleLastNameChange}
         />
       </div>
       <InputField
@@ -142,6 +162,7 @@ function SignUpForm() {
         autoComplete="email"
         value={email}
         hasError={!!errors.email}
+        errorText={errors.email}
         onChange={(val) => {
           setEmail(val);
           clearError("email");
@@ -152,14 +173,14 @@ function SignUpForm() {
         label="Phone number"
         icon={Phone}
         type="tel"
-        placeholder="09171234567"
+        placeholder="09XX XXX XXXX"
         autoComplete="tel"
+        maxLength={13}
         value={phone}
         hasError={!!errors.phone}
-        onChange={(val) => {
-          setPhone(val);
-          clearError("phone");
-        }}
+        errorText={errors.phone}
+        hint="Philippine mobile format (e.g. 0917 123 4567)"
+        onChange={handlePhoneChange}
       />
 
       <InputField
@@ -172,6 +193,7 @@ function SignUpForm() {
         hint="8+ characters: uppercase, lowercase, number, special character."
         value={password}
         hasError={!!errors.password}
+        errorText={errors.password}
         onChange={(val) => {
           setPassword(val);
           clearError("password");
@@ -189,14 +211,25 @@ function SignUpForm() {
         placeholder="Re-enter password"
         autoComplete="new-password"
         value={confirm}
-        hasError={!!errors.confirm}
+        hasError={!!errors.confirm || isConfirmMismatch || pasteBlocked}
+        errorText={
+          pasteBlocked
+            ? "Pasting is disabled for security. Please type your password manually."
+            : isConfirmMismatch
+              ? "Passwords do not match."
+              : errors.confirm
+        }
+        success={isConfirmMatch}
+        successText="Passwords match."
+        onPaste={handleConfirmPaste}
         onChange={(val) => {
           setConfirm(val);
           clearError("confirm");
+          if (pasteBlocked) setPasteBlocked(false);
         }}
         password
-        showPassword={showPassword}
-        onTogglePassword={() => setShowPassword((v) => !v)}
+        showPassword={showConfirm}
+        onTogglePassword={() => setShowConfirm((v) => !v)}
       />
 
       {error && <div className="rounded-lg bg-bad-bg px-3 py-2 text-sm font-medium text-bad">{error}</div>}

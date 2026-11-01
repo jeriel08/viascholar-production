@@ -30,7 +30,7 @@ export function ProfileDetailsCards({ user }: ProfileDetailsCardsProps) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1">
             <InfoRow label="Scholarship Track" value={scholarProfile?.scholarship_track || "General"} />
             <InfoRow label="School Name" value={scholarProfile?.school_name || "Not specified"} />
-            <InfoRow label="Course of Study" value={scholarProfile?.course_of_study || "Not specified"} />
+            <InfoRow label="Program" value={scholarProfile?.course_of_study || "Not specified"} />
             <InfoRow
               label="Year Level"
               value={scholarProfile?.current_year_level ? `Year ${scholarProfile.current_year_level}` : "Not specified"}

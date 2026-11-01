@@ -95,7 +95,7 @@ export function ApplicantDesktopDetails({ applicant }: ApplicantDesktopDetailsPr
             <dd className="font-medium text-foreground">{applicant.track || "—"}</dd>
           </div>
           <div>
-            <dt className="text-xs text-muted-foreground">Course of Study</dt>
+            <dt className="text-xs text-muted-foreground">Program</dt>
             <dd className="font-medium text-foreground">{applicant.course || "—"}</dd>
           </div>
           <div>

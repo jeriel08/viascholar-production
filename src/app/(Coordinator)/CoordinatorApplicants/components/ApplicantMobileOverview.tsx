@@ -93,7 +93,7 @@ export function ApplicantMobileOverview({ applicant }: ApplicantMobileOverviewPr
             <dd className="font-semibold text-foreground">{applicant.track || "—"}</dd>
           </div>
           <div className="flex flex-col gap-0.5 border-b border-slate-100 pb-2">
-            <dt className="text-[11px] text-muted-foreground">Course of Study</dt>
+            <dt className="text-[11px] text-muted-foreground">Program</dt>
             <dd className="font-semibold text-foreground">{applicant.course || "—"}</dd>
           </div>
           <div className="flex flex-col gap-0.5 border-b border-slate-100 pb-2">

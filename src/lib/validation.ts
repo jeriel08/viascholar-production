@@ -39,6 +39,22 @@ export const schoolGradingSchema = z.object({
   special_codes: z.record(z.string(), z.string()).optional(),
 });
 
+// Academic program schema (mirrors CreateAcademicProgramDto on backend)
+export const academicProgramSchema = z.object({
+  program_code: z
+    .string()
+    .trim()
+    .min(1, "Program code is required.")
+    .max(50, "Program code is too long.")
+    .transform((v) => v.toUpperCase()),
+  program_name: z.string().trim().min(1, "Program name is required.").max(150, "Program name is too long."),
+  category: z.string().trim().max(50, "Category is too long.").optional(),
+  description: z.string().trim().max(1000, "Description is too long.").optional(),
+  is_active: z.boolean().optional(),
+});
+
+export type AcademicProgramFormValues = z.infer<typeof academicProgramSchema>;
+
 // Academic year level options (1 to 5: College, 6: Masteral, 7: Doctoral)
 export const YEAR_LEVEL_OPTIONS = [
   { value: "1", label: "1st Year" },
@@ -55,7 +71,7 @@ export const applicationSchema = z.object({
   scholarship_track: z.string().trim().min(1, "Please choose a scholarship track."),
   student_number: z.string().trim().min(1, "Student number is required.").max(50, "Student number is too long."),
   student_address: z.string().trim().min(1, "Home address is required.").max(500, "Address is too long."),
-  course_of_study: z.string().trim().min(1, "Course of study is required.").max(150, "Course is too long."),
+  course_of_study: z.string().trim().min(1, "Program is required.").max(150, "Program name is too long."),
   current_year_level: z.string().trim().min(1, "Please select your current year level."),
   school_name: z.string().trim().min(1, "School name is required.").max(150, "School name is too long."),
   school_address: z.string().trim().min(1, "School address is required.").max(500, "Address is too long."),
@@ -68,3 +84,73 @@ export const applicationSchema = z.object({
 });
 
 export type ApplicationFormValues = z.infer<typeof applicationSchema>;
+
+// Helper to format Philippine mobile numbers as 09XX XXX XXXX
+export function formatPhilippinePhoneNumber(val: string): string {
+  // Strip all non-digit characters
+  let digits = val.replace(/\D/g, "");
+
+  // Auto-convert international +63 / 63 prefix to 09
+  if (digits.startsWith("63") && digits.length >= 3) {
+    digits = `0${digits.slice(2)}`;
+  }
+
+  // Cap at 11 digits
+  digits = digits.slice(0, 11);
+
+  // Format as 09XX XXX XXXX
+  if (digits.length <= 4) {
+    return digits;
+  }
+  if (digits.length <= 7) {
+    return `${digits.slice(0, 4)} ${digits.slice(4)}`;
+  }
+  return `${digits.slice(0, 4)} ${digits.slice(4, 7)} ${digits.slice(7, 11)}`;
+}
+
+// Signup form validation schema
+export const signUpSchema = z
+  .object({
+    firstName: z
+      .string()
+      .trim()
+      .min(1, "First name is required.")
+      .max(100, "First name is too long.")
+      .regex(/^[^0-9]+$/, "First name cannot contain numerical characters."),
+    lastName: z
+      .string()
+      .trim()
+      .min(1, "Last name is required.")
+      .max(100, "Last name is too long.")
+      .regex(/^[^0-9]+$/, "Last name cannot contain numerical characters."),
+    email: z
+      .string()
+      .trim()
+      .min(1, "Email address is required.")
+      .email("Please enter a valid email address.")
+      .max(255, "Email is too long."),
+    phone: z
+      .string()
+      .trim()
+      .min(1, "Phone number is required.")
+      .transform((val) => val.replace(/\s+/g, ""))
+      .pipe(
+        z
+          .string()
+          .regex(
+            /^09\d{9}$/,
+            "Phone number must be an 11-digit Philippine mobile number starting with 09 (e.g., 0917 123 4567).",
+          ),
+      ),
+    password: passwordSchema,
+    confirm: z.string().min(1, "Please confirm your password."),
+    agree: z.boolean().refine((val) => val === true, {
+      message: "Please agree to the Terms and Privacy Policy to continue.",
+    }),
+  })
+  .refine((data) => data.password === data.confirm, {
+    message: "Passwords do not match.",
+    path: ["confirm"],
+  });
+
+export type SignUpFormValues = z.infer<typeof signUpSchema>;

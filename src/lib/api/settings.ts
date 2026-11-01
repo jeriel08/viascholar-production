@@ -87,3 +87,43 @@ export async function verifySchoolGrading(id: number): Promise<SchoolGrading> {
 export async function deleteSchoolGrading(id: number): Promise<{ message: string }> {
   return apiDelete<{ message: string }>(`${B}/schools/${id}`);
 }
+
+export interface AcademicProgram {
+  program_id: number;
+  program_code: string;
+  program_name: string;
+  category: string | null;
+  description: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AcademicProgramInput {
+  program_code: string;
+  program_name: string;
+  category?: string;
+  description?: string;
+  is_active?: boolean;
+}
+
+export async function listAcademicPrograms(onlyActive = false): Promise<AcademicProgram[]> {
+  const query = onlyActive ? "?only_active=true" : "";
+  return apiGet<AcademicProgram[]>(`${B}/programs${query}`);
+}
+
+export async function createAcademicProgram(data: AcademicProgramInput): Promise<AcademicProgram> {
+  return apiPost<AcademicProgram>(`${B}/programs`, data);
+}
+
+export async function updateAcademicProgram(
+  id: number,
+  data: Partial<AcademicProgramInput>,
+): Promise<AcademicProgram> {
+  return apiPatch<AcademicProgram>(`${B}/programs/${id}`, data);
+}
+
+export async function deleteAcademicProgram(id: number): Promise<{ message: string }> {
+  return apiDelete<{ message: string }>(`${B}/programs/${id}`);
+}
+
