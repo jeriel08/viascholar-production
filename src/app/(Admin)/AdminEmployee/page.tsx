@@ -6,7 +6,7 @@ import { useSocketEvent } from "@/contexts/SocketContext";
 import { ApiError } from "@/lib/api";
 import { requestPasswordReset } from "@/lib/api/auth";
 import { createStaff, listUsers, resetPassword, updateUserStatus } from "@/lib/api/users";
-import { getPasswordError } from "@/lib/validation";
+import { addEmployeeSchema } from "@/lib/validation";
 import { AddEmployeeSheet } from "./components/AddEmployeeSheet";
 import { EmployeeHeader } from "./components/EmployeeHeader";
 import { EmployeeResetPasswordDialog } from "./components/EmployeeResetPasswordDialog";
@@ -92,9 +92,9 @@ export default function AdminEmployeePage() {
 
   const handleAddEmployee = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const passwordError = getPasswordError(addFields.password);
-    if (passwordError) {
-      setAddError(passwordError);
+    const result = addEmployeeSchema.safeParse(addFields);
+    if (!result.success) {
+      setAddError(result.error.issues[0]?.message ?? "Please check all required fields.");
       return;
     }
     setAdding(true);

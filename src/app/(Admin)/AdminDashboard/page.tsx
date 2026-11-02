@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ApiError } from "@/lib/api";
 import { requestPasswordReset } from "@/lib/api/auth";
 import { createStaff, resetPassword } from "@/lib/api/users";
-import { getPasswordError } from "@/lib/validation";
+import { addEmployeeSchema, getPasswordError } from "@/lib/validation";
 import { AddEmployeeSheet } from "../AdminEmployee/components/AddEmployeeSheet";
 import { EmployeeResetPasswordDialog } from "../AdminEmployee/components/EmployeeResetPasswordDialog";
 import {
@@ -44,9 +44,9 @@ export default function AdminDashboardPage() {
   // Handle Add Employee Form Submit
   const handleAddEmployeeSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const passwordError = getPasswordError(addFields.password);
-    if (passwordError) {
-      setAddEmployeeError(passwordError);
+    const result = addEmployeeSchema.safeParse(addFields);
+    if (!result.success) {
+      setAddEmployeeError(result.error.issues[0]?.message ?? "Please check all required fields.");
       return;
     }
     setAddingEmployee(true);

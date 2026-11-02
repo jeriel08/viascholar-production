@@ -13,8 +13,8 @@ import { ApplicantActionDialogs } from "./ApplicantActionDialogs";
 import { ApplicantDesktopDetails } from "./ApplicantDesktopDetails";
 import { ApplicantDocumentsList } from "./ApplicantDocumentsList";
 import { ApplicantEligibilityBanner } from "./ApplicantEligibilityBanner";
-import { acceptWarning, getStageVariant } from "./applicant-helpers";
 import { ApplicantMobileDrawer } from "./ApplicantMobileDrawer";
+import { acceptWarning, getStageVariant } from "./applicant-helpers";
 import { DocumentVerifyDialog } from "./DocumentVerifyDialog";
 
 interface ApplicantDialogProps {
@@ -50,15 +50,21 @@ export function ApplicantDialog({
   const [loadedDocs, setLoadedDocs] = useState<ScholarDocument[] | null>(null);
   const [scheduling, setScheduling] = useState(false);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: applicant.id and applicant.stage intentionally reset dialog confirmation state on applicant or stage change
+  const applicantId = applicant?.id;
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: applicantId intentionally resets loaded docs on applicant switch
   useEffect(() => {
     setLoadedDocs(null);
+  }, [applicantId]);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: applicantId and stage intentionally reset confirmation state
+  useEffect(() => {
     setAcceptWarningText(null);
     setConfirmingReject(false);
     setConfirmingReopen(false);
     setRejectReason("");
     setScheduling(false);
-  }, [applicant?.id, applicant?.stage, applicant?.documentsCount]);
+  }, [applicantId, applicant?.stage]);
 
   function handleClose() {
     setConfirmingReject(false);
@@ -142,15 +148,17 @@ export function ApplicantDialog({
                       <Badge variant={getStageVariant(applicant.stage)} className="h-6 px-2.5 text-xs!">
                         {applicant.stage}
                       </Badge>
-                      {applicant.stage === "Accepted" && applicant.hasContract && applicant.contractStatus === "PENDING" && (
-                        <Badge
-                          variant="outline"
-                          className="inline-flex items-center gap-1.5 h-6 px-2.5 text-xs! font-medium border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-700/50 dark:bg-amber-950/40 dark:text-amber-300"
-                        >
-                          <FileSignature className="size-3.5 text-amber-600 dark:text-amber-400" />
-                          Signing Contract
-                        </Badge>
-                      )}
+                      {applicant.stage === "Accepted" &&
+                        applicant.hasContract &&
+                        applicant.contractStatus === "PENDING" && (
+                          <Badge
+                            variant="outline"
+                            className="inline-flex items-center gap-1.5 h-6 px-2.5 text-xs! font-medium border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-700/50 dark:bg-amber-950/40 dark:text-amber-300"
+                          >
+                            <FileSignature className="size-3.5 text-amber-600 dark:text-amber-400" />
+                            Signing Contract
+                          </Badge>
+                        )}
                     </div>
                     <p className="text-xs text-slate-500 mt-0.5">
                       {applicant.course} · {applicant.year} · Applied on {applicant.applied}

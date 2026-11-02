@@ -1,7 +1,7 @@
 "use client";
 
 import { Eye, EyeOff, UserPlus } from "lucide-react";
-import type { FormEvent } from "react";
+import type { FormEvent, KeyboardEvent } from "react";
 import { useState } from "react";
 import { PasswordChecklist } from "@/app/(Authentication)/components/PasswordChecklist";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
+import { addEmployeeSchema } from "@/lib/validation";
 import type { AddEmployeeFields } from "./employee-helpers";
 
 interface AddEmployeeSheetProps {
@@ -42,8 +44,59 @@ function AddEmployeeFormBody({
   onSubmit: (e: FormEvent<HTMLFormElement>) => void;
   onCancel: () => void;
 }) {
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  const clearFieldError = (key: string) => {
+    if (fieldErrors[key]) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+    }
+  };
+
+  const handleFirstNameChange = (val: string) => {
+    // Strip numerical characters immediately
+    const clean = val.replace(/[0-9]/g, "");
+    set({ first_name: clean });
+    clearFieldError("first_name");
+  };
+
+  const handleLastNameChange = (val: string) => {
+    // Strip numerical characters immediately
+    const clean = val.replace(/[0-9]/g, "");
+    set({ last_name: clean });
+    clearFieldError("last_name");
+  };
+
+  const handleNameKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    // Prevent typing numerical digits 0-9
+    if (/^[0-9]$/.test(e.key)) {
+      e.preventDefault();
+    }
+  };
+
+  const handleFormSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const result = addEmployeeSchema.safeParse(fields);
+    if (!result.success) {
+      const errorsMap: Record<string, string> = {};
+      for (const issue of result.error.issues) {
+        const fieldName = issue.path[0]?.toString() || "form";
+        if (!errorsMap[fieldName]) {
+          errorsMap[fieldName] = issue.message;
+        }
+      }
+      setFieldErrors(errorsMap);
+      return;
+    }
+    setFieldErrors({});
+    onSubmit(e);
+  };
+
   return (
-    <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-4">
+    <form onSubmit={handleFormSubmit} className="mt-6 flex flex-col gap-4">
       {/* First Name & Last Name - Stacked on mobile only */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
@@ -53,10 +106,18 @@ function AddEmployeeFormBody({
           <Input
             id="add-first-name"
             value={fields.first_name}
-            onChange={(e) => set({ first_name: e.target.value })}
+            onChange={(e) => handleFirstNameChange(e.target.value)}
+            onKeyDown={handleNameKeyDown}
+            placeholder="e.g. Maria"
             required
-            className="h-10 sm:h-9 text-xs"
+            className={cn(
+              "h-10 sm:h-9 text-xs",
+              fieldErrors.first_name && "border-destructive focus-visible:ring-destructive/30",
+            )}
           />
+          {fieldErrors.first_name && (
+            <p className="text-[11px] font-medium text-destructive">{fieldErrors.first_name}</p>
+          )}
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="add-last-name" className="text-xs font-semibold">
@@ -65,10 +126,16 @@ function AddEmployeeFormBody({
           <Input
             id="add-last-name"
             value={fields.last_name}
-            onChange={(e) => set({ last_name: e.target.value })}
+            onChange={(e) => handleLastNameChange(e.target.value)}
+            onKeyDown={handleNameKeyDown}
+            placeholder="e.g. Santos"
             required
-            className="h-10 sm:h-9 text-xs"
+            className={cn(
+              "h-10 sm:h-9 text-xs",
+              fieldErrors.last_name && "border-destructive focus-visible:ring-destructive/30",
+            )}
           />
+          {fieldErrors.last_name && <p className="text-[11px] font-medium text-destructive">{fieldErrors.last_name}</p>}
         </div>
       </div>
 
@@ -80,10 +147,18 @@ function AddEmployeeFormBody({
           id="add-email"
           type="email"
           value={fields.email}
-          onChange={(e) => set({ email: e.target.value })}
+          onChange={(e) => {
+            set({ email: e.target.value });
+            clearFieldError("email");
+          }}
+          placeholder="employee@viascholar.edu.ph"
           required
-          className="h-10 sm:h-9 text-xs"
+          className={cn(
+            "h-10 sm:h-9 text-xs",
+            fieldErrors.email && "border-destructive focus-visible:ring-destructive/30",
+          )}
         />
+        {fieldErrors.email && <p className="text-[11px] font-medium text-destructive">{fieldErrors.email}</p>}
       </div>
 
       <div className="space-y-1.5">
@@ -96,9 +171,15 @@ function AddEmployeeFormBody({
             type={showPw ? "text" : "password"}
             placeholder="At least 8 characters"
             value={fields.password}
-            onChange={(e) => set({ password: e.target.value })}
+            onChange={(e) => {
+              set({ password: e.target.value });
+              clearFieldError("password");
+            }}
             required
-            className="h-10 sm:h-9 pr-9 text-xs"
+            className={cn(
+              "h-10 sm:h-9 pr-9 text-xs",
+              fieldErrors.password && "border-destructive focus-visible:ring-destructive/30",
+            )}
           />
           <button
             type="button"
@@ -109,6 +190,7 @@ function AddEmployeeFormBody({
             {showPw ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
           </button>
         </div>
+        {fieldErrors.password && <p className="text-[11px] font-medium text-destructive">{fieldErrors.password}</p>}
         <p className="text-[11px] text-muted-foreground">
           8+ characters with uppercase, lowercase, number, and special character.
         </p>
@@ -123,8 +205,20 @@ function AddEmployeeFormBody({
           <Label htmlFor="add-role" className="text-xs font-semibold">
             Role <span className="text-destructive">*</span>
           </Label>
-          <Select value={fields.role} onValueChange={(v) => set({ role: v })}>
-            <SelectTrigger id="add-role" className="h-10 sm:h-9 text-xs">
+          <Select
+            value={fields.role}
+            onValueChange={(v) => {
+              set({ role: v });
+              clearFieldError("role");
+            }}
+          >
+            <SelectTrigger
+              id="add-role"
+              className={cn(
+                "h-10 sm:h-9 text-xs",
+                fieldErrors.role && "border-destructive focus-visible:ring-destructive/30",
+              )}
+            >
               <SelectValue placeholder="Select role" />
             </SelectTrigger>
             <SelectContent>
@@ -136,6 +230,7 @@ function AddEmployeeFormBody({
               </SelectItem>
             </SelectContent>
           </Select>
+          {fieldErrors.role && <p className="text-[11px] font-medium text-destructive">{fieldErrors.role}</p>}
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="add-department" className="text-xs font-semibold">
@@ -144,9 +239,19 @@ function AddEmployeeFormBody({
           <Input
             id="add-department"
             value={fields.department}
-            onChange={(e) => set({ department: e.target.value })}
-            className="h-10 sm:h-9 text-xs"
+            onChange={(e) => {
+              set({ department: e.target.value });
+              clearFieldError("department");
+            }}
+            placeholder="e.g. Scholarship Office"
+            className={cn(
+              "h-10 sm:h-9 text-xs",
+              fieldErrors.department && "border-destructive focus-visible:ring-destructive/30",
+            )}
           />
+          {fieldErrors.department && (
+            <p className="text-[11px] font-medium text-destructive">{fieldErrors.department}</p>
+          )}
         </div>
       </div>
 
@@ -158,9 +263,16 @@ function AddEmployeeFormBody({
           id="add-title"
           placeholder="e.g. Scholarship Coordinator"
           value={fields.title}
-          onChange={(e) => set({ title: e.target.value })}
-          className="h-10 sm:h-9 text-xs"
+          onChange={(e) => {
+            set({ title: e.target.value });
+            clearFieldError("title");
+          }}
+          className={cn(
+            "h-10 sm:h-9 text-xs",
+            fieldErrors.title && "border-destructive focus-visible:ring-destructive/30",
+          )}
         />
+        {fieldErrors.title && <p className="text-[11px] font-medium text-destructive">{fieldErrors.title}</p>}
       </div>
 
       {addError && (

@@ -22,6 +22,36 @@ export function getPasswordError(value: string): string | null {
   return result.error.issues[0]?.message ?? "Password does not meet the requirements.";
 }
 
+// Add employee schema (provisioning Coordinator / Grantor / Admin accounts)
+export const addEmployeeSchema = z.object({
+  first_name: z
+    .string()
+    .trim()
+    .min(1, "First name is required.")
+    .max(100, "First name is too long.")
+    .regex(/^[^0-9]+$/, "First name cannot contain numerical characters."),
+  last_name: z
+    .string()
+    .trim()
+    .min(1, "Last name is required.")
+    .max(100, "Last name is too long.")
+    .regex(/^[^0-9]+$/, "Last name cannot contain numerical characters."),
+  email: z
+    .string()
+    .trim()
+    .min(1, "Email address is required.")
+    .email("Please enter a valid email address.")
+    .max(255, "Email is too long."),
+  password: passwordSchema,
+  role: z.enum(["COORDINATOR", "GRANTOR", "ADMIN"], {
+    error: "Please select a valid role.",
+  }),
+  title: z.string().trim().max(100, "Job title is too long.").optional(),
+  department: z.string().trim().max(100, "Department name is too long.").optional(),
+});
+
+export type AddEmployeeFormValues = z.infer<typeof addEmployeeSchema>;
+
 // Global grade retention threshold: percentage between 0 and 100.
 export const thresholdSchema = z
   .number({ error: "Threshold must be a number." })
@@ -87,18 +117,29 @@ export const YEAR_LEVEL_OPTIONS = [
 // Scholarship application form (mirrors CreateApplicationDto on the backend).
 export const applicationSchema = z.object({
   scholarship_track: z.string().trim().min(1, "Please choose a scholarship track."),
-  student_number: z.string().trim().min(1, "Student number is required.").max(50, "Student number is too long."),
-  student_address: z.string().trim().min(1, "Home address is required.").max(500, "Address is too long."),
+  student_number: z
+    .string()
+    .trim()
+    .min(1, "Student number is required.")
+    .regex(
+      /^\d{5,12}$/,
+      "Student number must be between 5 and 12 numerical digits (exclude dashes or special characters).",
+    ),
+  student_address: z.string().trim().min(1, "Home address is required.").max(500, "Home address is too long."),
   course_of_study: z.string().trim().min(1, "Program is required.").max(150, "Program name is too long."),
   current_year_level: z.string().trim().min(1, "Please select your current year level."),
   school_name: z.string().trim().min(1, "School name is required.").max(150, "School name is too long."),
-  school_address: z.string().trim().min(1, "School address is required.").max(500, "Address is too long."),
+  school_address: z.string().trim().min(1, "School address is required.").max(500, "School address is too long."),
   phone_number: z.string().trim().max(30, "Phone number is too long.").optional(),
   relative_employee: z
     .string()
     .trim()
     .min(1, "Relative employed by partner is required.")
-    .max(150, "Name is too long."),
+    .max(150, "Name is too long.")
+    .regex(
+      /^[a-zA-ZÀ-ÿñÑ\s.\-']+$/,
+      "Relative employee name can only contain letters, spaces, and periods (e.g. for middle initials).",
+    ),
 });
 
 export type ApplicationFormValues = z.infer<typeof applicationSchema>;

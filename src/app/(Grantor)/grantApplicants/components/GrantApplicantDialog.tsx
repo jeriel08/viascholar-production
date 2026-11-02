@@ -106,16 +106,21 @@ export function GrantApplicantDialog({
     };
   }, [applicant?.profileId]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: applicant.id and applicant.stage intentionally reset dialog confirmation state on applicant or stage change
+  const applicantId = applicant?.id;
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: applicantId intentionally resets loaded docs on applicant switch
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoadedDocs(null);
+  }, [applicantId]);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: applicantId and stage intentionally reset confirmation state
+  useEffect(() => {
     setAcceptWarningText(null);
     setConfirmingReject(false);
     setConfirmingReopen(false);
     setScheduling(false);
     setCreatingContract(false);
-  }, [applicant?.id, applicant?.stage]);
+  }, [applicantId, applicant?.stage]);
 
   function handleClose() {
     setConfirmingReject(false);
@@ -373,134 +378,130 @@ export function GrantApplicantDialog({
                         </div>
                       )}
                     </div>
+                  </div>
 
-                    {/* Action Buttons Footer */}
-                    <div className="sticky bottom-0 flex justify-end bg-background px-6 py-4">
-                      <div className="flex w-full flex-col items-end gap-2">
-                        {actionError && (
-                          <p className="rounded-xl bg-destructive/10 px-3.5 py-2.5 text-xs font-medium text-destructive">
-                            {actionError}
+                  {/* Action Buttons Footer */}
+                  <div className="shrink-0 border-t border-border/70 bg-card/90 px-6 py-4 backdrop-blur-xs">
+                    {actionError && (
+                      <p className="mb-3 rounded-xl bg-destructive/10 px-3.5 py-2.5 text-xs font-medium text-destructive">
+                        {actionError}
+                      </p>
+                    )}
+
+                    {applicant.stage === "Rejected" ? (
+                      <div className="flex w-full flex-col items-stretch justify-between gap-3 rounded-xl border border-border/70 bg-card p-3.5 sm:flex-row sm:items-center">
+                        <div className="text-xs text-muted-foreground">
+                          <p className="font-semibold text-foreground">Application is currently marked as Rejected</p>
+                          <p className="mt-0.5">
+                            If an applicant inquiry or clarification was accepted, you can reopen this application for
+                            evaluation.
                           </p>
-                        )}
-
-                        {canSchedule && (
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="h-9 shrink-0 gap-1.5 rounded-xl border-primary/30 px-3.5 text-xs! font-semibold text-primary hover:bg-primary/5"
+                          disabled={acting}
+                          onClick={() => setConfirmingReopen(true)}
+                        >
+                          <RotateCcw className="size-3.5" />
+                          <span>Reopen Application</span>
+                        </Button>
+                      </div>
+                    ) : applicant.stage === "Accepted" ? (
+                      <div className="flex items-center justify-end gap-2.5">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="h-9.5 rounded-xl text-xs! font-medium"
+                          onClick={() => handleClose()}
+                        >
+                          Close
+                        </Button>
+                        <Button
+                          type="button"
+                          className="h-9.5 gap-1.5 rounded-xl text-xs! font-semibold"
+                          onClick={() => setCreatingContract(true)}
+                        >
+                          <FileSignature className="size-3.5" />
+                          <span>{existingContract ? "Re-issue Contract" : "Issue Scholarship Contract"}</span>
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div>
                           <Button
                             type="button"
                             variant="outline"
-                            className="h-9 min-w-45 rounded-xl text-xs! font-medium"
-                            disabled={acting}
-                            onClick={() => setScheduling(true)}
-                          >
-                            <CalendarClock className="size-3.5" />
-                            {applicant.hasInterview ? "Reschedule meeting" : "Schedule meeting"}
-                          </Button>
-                        )}
-
-                        {/* Only pre-endorsement stages can Pass to Interview */}
-                        {(applicant.stage === "Submitted" || applicant.stage === "Under review") && (
-                          <Button
-                            type="button"
-                            className="h-9 min-w-45 rounded-xl text-xs! font-medium"
-                            disabled={acting || isDocsLoading || hasNoDocs || !hasConfirmedDocs}
-                            title={
-                              hasNoDocs
-                                ? "Applicant has not submitted any documents yet"
-                                : !hasConfirmedDocs
-                                  ? "Applicant must review and confirm their document first"
-                                  : undefined
-                            }
-                            onClick={async () => {
-                              try {
-                                await onMoveStage(applicant.id, "Interview");
-                                setScheduling(true);
-                              } catch {
-                                // Handled by actionError in parent
-                              }
-                            }}
-                          >
-                            Pass to Interview
-                            <ArrowRight className="size-3.5" />
-                          </Button>
-                        )}
-
-                        {(applicant.stage === "Interview" || applicant.stage === "Endorsed") && (
-                          <Button
-                            type="button"
-                            className="h-9 min-w-45 rounded-xl text-xs! font-medium"
-                            disabled={acting}
-                            onClick={() => {
-                              const warning = acceptWarning(applicant.hasInterview, applicant.interviewAt);
-                              if (warning) {
-                                setAcceptWarningText(warning);
-                              } else {
-                                onMoveStage(applicant.id, "Accepted");
-                              }
-                            }}
-                          >
-                            Accept applicant
-                            <ArrowRight className="size-3.5" />
-                          </Button>
-                        )}
-
-                        {applicant.stage !== "Rejected" && applicant.stage !== "Accepted" && (
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            className="h-9 min-w-45 rounded-xl text-xs! font-medium"
+                            className="h-9.5 rounded-xl px-4 text-xs! font-medium border-rose-200 bg-rose-50/70 text-rose-700 hover:bg-rose-100 hover:text-rose-800 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-400 w-full sm:w-auto"
                             disabled={acting}
                             onClick={() => setConfirmingReject(true)}
                           >
                             Reject application
                           </Button>
-                        )}
+                        </div>
 
-                        {/* Reopen Application (e.g. after successful inquiry) */}
-                        {applicant.stage === "Rejected" && (
-                          <div className="flex w-full flex-col items-stretch justify-between gap-3 rounded-xl border border-border/70 bg-card p-3.5 sm:flex-row sm:items-center">
-                            <div className="text-xs text-muted-foreground">
-                              <p className="font-semibold text-foreground">
-                                Application is currently marked as Rejected
-                              </p>
-                              <p className="mt-0.5">
-                                If an applicant inquiry or clarification was accepted, you can reopen this application
-                                for evaluation.
-                              </p>
-                            </div>
+                        <div className="flex flex-wrap items-center justify-end gap-2.5">
+                          {canSchedule && (
                             <Button
                               type="button"
                               variant="outline"
-                              className="h-8 shrink-0 gap-1.5 rounded-xl border-primary/30 px-3.5 text-xs! font-semibold text-primary hover:bg-primary/5"
+                              className="h-9.5 rounded-xl px-4 text-xs! font-medium gap-1.5"
                               disabled={acting}
-                              onClick={() => setConfirmingReopen(true)}
+                              onClick={() => setScheduling(true)}
                             >
-                              <RotateCcw className="size-3.5" />
-                              <span>Reopen Application</span>
+                              <CalendarClock className="size-3.5" />
+                              {applicant.hasInterview ? "Reschedule meeting" : "Schedule meeting"}
                             </Button>
-                          </div>
-                        )}
+                          )}
 
-                        {applicant.stage === "Accepted" && (
-                          <div className="flex items-center justify-end gap-2">
+                          {(applicant.stage === "Submitted" || applicant.stage === "Under review") && (
                             <Button
                               type="button"
-                              variant="outline"
-                              className="h-9 rounded-xl text-xs! font-medium"
-                              onClick={() => handleClose()}
+                              className="h-9.5 rounded-xl px-5 text-xs! font-medium gap-1.5"
+                              disabled={acting || isDocsLoading || hasNoDocs || !hasConfirmedDocs}
+                              title={
+                                hasNoDocs
+                                  ? "Applicant has not submitted any documents yet"
+                                  : !hasConfirmedDocs
+                                    ? "Applicant must review and confirm their document first"
+                                    : undefined
+                              }
+                              onClick={async () => {
+                                try {
+                                  await onMoveStage(applicant.id, "Interview");
+                                  setScheduling(true);
+                                } catch {
+                                  // Handled by actionError in parent
+                                }
+                              }}
                             >
-                              Close
+                              Pass to Interview
+                              <ArrowRight className="size-3.5" />
                             </Button>
+                          )}
+
+                          {(applicant.stage === "Interview" || applicant.stage === "Endorsed") && (
                             <Button
                               type="button"
-                              className="h-9 gap-1.5 rounded-xl text-xs! font-semibold"
-                              onClick={() => setCreatingContract(true)}
+                              className="h-9.5 rounded-xl px-5 text-xs! font-semibold gap-1.5 bg-[#1b4332] hover:bg-[#143225] text-white shadow-xs"
+                              disabled={acting}
+                              onClick={() => {
+                                const warning = acceptWarning(applicant.hasInterview, applicant.interviewAt);
+                                if (warning) {
+                                  setAcceptWarningText(warning);
+                                } else {
+                                  onMoveStage(applicant.id, "Accepted");
+                                }
+                              }}
                             >
-                              <FileSignature className="size-3.5" />
-                              <span>{existingContract ? "Re-issue Contract" : "Issue Scholarship Contract"}</span>
+                              Accept applicant
+                              <ArrowRight className="size-3.5" />
                             </Button>
-                          </div>
-                        )}
+                          )}
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               </div>
