@@ -16,9 +16,15 @@ export interface NavItem {
 // wrong menu.
 export type SidebarRole = "admin" | "applicant" | "coordinator" | "grantor" | "scholar";
 
+export interface NavGroup {
+  label?: string;
+  items: NavItem[];
+}
+
 export interface RoleSidebarConfig {
   homeHref: string;
   profileHref: string;
   roleLabel: string;
   items: NavItem[];
+  groups?: NavGroup[];
 }

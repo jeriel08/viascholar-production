@@ -12,10 +12,8 @@ import { ApiError } from "@/lib/api";
 import {
   createSchool,
   deleteSchool,
-  listSchoolGradings,
   listSchools,
   type School,
-  type SchoolGrading,
   type SchoolInput,
   updateSchool,
 } from "@/lib/api/settings";
@@ -32,8 +30,6 @@ export default function SchoolsPage() {
   const [loadError, setLoadError] = useState("");
   const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
   const [showAdd, setShowAdd] = useState(false);
-
-  const [gradingScales, setGradingScales] = useState<SchoolGrading[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
 
   const canManage = user?.role === "ADMIN" || user?.role === "GRANTOR";
@@ -51,18 +47,9 @@ export default function SchoolsPage() {
     }
   }, []);
 
-  const fetchGradingScales = useCallback(async () => {
-    try {
-      setGradingScales(await listSchoolGradings());
-    } catch (err) {
-      console.error("Failed to load grading scales:", err);
-    }
-  }, []);
-
   useEffect(() => {
     fetchSchools();
-    fetchGradingScales();
-  }, [fetchSchools, fetchGradingScales]);
+  }, [fetchSchools]);
 
   // Real-time socket events
   useSocketEvent("school:created", fetchSchools);
@@ -152,6 +139,7 @@ export default function SchoolsPage() {
           loadError={loadError}
           onRetry={fetchSchools}
           onSelect={setSelectedSchool}
+          searchQuery={searchQuery}
         />
       </div>
 
@@ -159,12 +147,11 @@ export default function SchoolsPage() {
         school={selectedSchool}
         open={!!selectedSchool}
         onOpenChange={(open) => !open && setSelectedSchool(null)}
-        gradingSystems={gradingScales}
         onUpdate={handleUpdate}
         onDelete={handleDelete}
       />
 
-      <AddSchoolSheet open={showAdd} onOpenChange={setShowAdd} gradingSystems={gradingScales} onCreate={handleCreate} />
+      <AddSchoolSheet open={showAdd} onOpenChange={setShowAdd} onCreate={handleCreate} />
     </div>
   );
 }

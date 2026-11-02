@@ -15,13 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import type { AcademicProgram, AcademicProgramInput } from "@/lib/api/settings";
@@ -122,7 +116,7 @@ export function ProgramSheet({
         <SheetContent
           side="right"
           showCloseButton={false}
-          className="w-full sm:max-w-lg flex flex-col gap-0 p-0 overflow-hidden border-l border-border bg-background"
+          className="w-full sm:max-w-lg! flex flex-col gap-0 p-0 overflow-hidden border-l border-border bg-background"
         >
           <div className="flex items-center justify-between border-b border-border p-6 bg-card">
             <div className="flex items-center gap-3">
@@ -130,9 +124,7 @@ export function ProgramSheet({
                 <BookOpen className="size-5" />
               </span>
               <div className="min-w-0">
-                <SheetTitle className="text-lg font-semibold text-foreground">
-                  Edit Academic Program
-                </SheetTitle>
+                <SheetTitle className="text-lg font-semibold text-foreground">Edit Academic Program</SheetTitle>
                 <SheetDescription className="text-xs text-muted-foreground">
                   ID: #{program.program_id} &middot; Created on {new Date(program.created_at).toLocaleDateString()}
                 </SheetDescription>
@@ -151,11 +143,7 @@ export function ProgramSheet({
           </div>
 
           <form onSubmit={handleSave} className="flex-1 overflow-y-auto p-6 space-y-4">
-            {error && (
-              <div className="rounded-lg bg-bad-bg p-3 text-xs font-semibold text-bad">
-                {error}
-              </div>
-            )}
+            {error && <div className="rounded-lg bg-bad-bg p-3 text-xs font-semibold text-bad">{error}</div>}
 
             <div className="space-y-1.5">
               <Label htmlFor="edit_program_code" className="text-xs font-bold text-navy uppercase">
@@ -265,8 +253,11 @@ export function ProgramSheet({
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Academic Program</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete <strong>{program.program_name} ({program.program_code})</strong>?
-              This action cannot be undone.
+              Are you sure you want to delete{" "}
+              <strong>
+                {program.program_name} ({program.program_code})
+              </strong>
+              ? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -284,4 +275,3 @@ export function ProgramSheet({
     </>
   );
 }
-

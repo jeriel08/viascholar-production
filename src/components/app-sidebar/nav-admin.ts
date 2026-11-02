@@ -29,6 +29,7 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
     label: "Grading Systems",
     icon: SlidersHorizontal,
     href: "/GradingSystems",
+    hidden: true,
   },
   {
     key: "audit-logs",

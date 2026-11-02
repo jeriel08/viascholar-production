@@ -5,13 +5,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import type { AcademicProgramInput } from "@/lib/api/settings";
@@ -81,7 +75,7 @@ export function AddProgramSheet({ open, onOpenChange, onCreate }: AddProgramShee
       <SheetContent
         side="right"
         showCloseButton={false}
-        className="w-full sm:max-w-lg flex flex-col gap-0 p-0 overflow-hidden border-l border-border bg-background"
+        className="w-full sm:max-w-lg! flex flex-col gap-0 p-0 overflow-hidden border-l border-border bg-background"
       >
         <div className="flex items-center justify-between border-b border-border p-6 bg-card">
           <div className="flex items-center gap-3">
@@ -89,9 +83,7 @@ export function AddProgramSheet({ open, onOpenChange, onCreate }: AddProgramShee
               <BookOpen className="size-5" />
             </span>
             <div className="min-w-0">
-              <SheetTitle className="text-lg font-semibold text-foreground">
-                Add Academic Program
-              </SheetTitle>
+              <SheetTitle className="text-lg font-semibold text-foreground">Add Academic Program</SheetTitle>
               <SheetDescription className="text-xs text-muted-foreground">
                 Configure degree program or Senior High School strand
               </SheetDescription>
@@ -110,11 +102,7 @@ export function AddProgramSheet({ open, onOpenChange, onCreate }: AddProgramShee
         </div>
 
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
-          {error && (
-            <div className="rounded-lg bg-bad-bg p-3 text-xs font-semibold text-bad">
-              {error}
-            </div>
-          )}
+          {error && <div className="rounded-lg bg-bad-bg p-3 text-xs font-semibold text-bad">{error}</div>}
 
           <div className="space-y-1.5">
             <Label htmlFor="program_code" className="text-xs font-bold text-navy uppercase">
@@ -189,12 +177,7 @@ export function AddProgramSheet({ open, onOpenChange, onCreate }: AddProgramShee
           </div>
 
           <div className="flex justify-end gap-2 pt-6 border-t border-line">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={saving}
-            >
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
               Cancel
             </Button>
             <Button type="submit" disabled={saving}>
@@ -206,4 +189,3 @@ export function AddProgramSheet({ open, onOpenChange, onCreate }: AddProgramShee
     </Sheet>
   );
 }
-

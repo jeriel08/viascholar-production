@@ -116,10 +116,7 @@ export async function createAcademicProgram(data: AcademicProgramInput): Promise
   return apiPost<AcademicProgram>(`${B}/programs`, data);
 }
 
-export async function updateAcademicProgram(
-  id: number,
-  data: Partial<AcademicProgramInput>,
-): Promise<AcademicProgram> {
+export async function updateAcademicProgram(id: number, data: Partial<AcademicProgramInput>): Promise<AcademicProgram> {
   return apiPatch<AcademicProgram>(`${B}/programs/${id}`, data);
 }
 
@@ -148,6 +145,8 @@ export interface SchoolInput {
   contact_email?: string;
   contact_number?: string;
   grading_system_id?: number;
+  grading_scale?: string;
+  special_codes?: Record<string, string>;
   is_active?: boolean;
 }
 
@@ -167,4 +166,3 @@ export async function updateSchool(id: number, data: Partial<SchoolInput>): Prom
 export async function deleteSchool(id: number): Promise<{ message: string; school?: School }> {
   return apiDelete<{ message: string; school?: School }>(`${B}/schools-list/${id}`);
 }
-

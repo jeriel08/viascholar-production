@@ -13,6 +13,7 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuBadge,
@@ -81,6 +82,60 @@ export function AppSidebar({ role, ...props }: AppSidebarProps) {
     return item.badge;
   };
 
+  const renderMenuItem = (item: {
+    key: string;
+    label: string;
+    icon: React.ComponentType<{ className?: string }>;
+    href: string;
+    badge?: number;
+    hidden?: boolean;
+  }) => {
+    const Icon = item.icon;
+    const isActive = pathname === item.href || (item.href !== config.homeHref && pathname.startsWith(item.href));
+    const itemBadge = getItemBadge(item);
+
+    return (
+      <SidebarMenuItem
+        key={item.key}
+        className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center"
+      >
+        <SidebarMenuButton
+          asChild
+          isActive={isActive}
+          tooltip={item.label}
+          className={`h-9.5 rounded-lg px-2.5 text-[0.92rem] font-medium transition-all duration-150 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-0! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:items-center ${
+            isActive
+              ? "bg-amber! text-navy! data-[active=true]:bg-amber! data-[active=true]:text-white! hover:bg-amber! hover:text-navy! [--sidebar-accent:var(--amber)] [--sidebar-accent-foreground:var(--navy)] font-semibold shadow-xs"
+              : "text-white/80 hover:bg-white/10! hover:text-white!"
+          }`}
+        >
+          <Link
+            href={item.href}
+            className="flex h-full w-full items-center justify-start gap-3 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0"
+          >
+            <Icon
+              className={`size-4.5 shrink-0 transition-colors my-auto ${isActive ? "text-white!" : "text-white/80"}`}
+            />
+            <span className="truncate group-data-[collapsible=icon]:hidden">{item.label}</span>
+          </Link>
+        </SidebarMenuButton>
+        {itemBadge !== undefined && (
+          <SidebarMenuBadge
+            className={`top-1/2! right-2! -translate-y-1/2 font-bold text-[0.7rem] px-1.5 py-0.5 rounded-full group-data-[collapsible=icon]:hidden transition-colors ${
+              itemBadge === "!"
+                ? "bg-amber-400! text-navy! font-black! animate-pulse shadow-xs"
+                : isActive
+                  ? "bg-navy! text-white/80!"
+                  : "bg-amber text-navy"
+            }`}
+          >
+            {itemBadge}
+          </SidebarMenuBadge>
+        )}
+      </SidebarMenuItem>
+    );
+  };
+
   return (
     <Sidebar
       collapsible="icon"
@@ -119,59 +174,38 @@ export function AppSidebar({ role, ...props }: AppSidebarProps) {
 
         {/* Sidebar Content: Main Navigation Items */}
         <SidebarContent className="px-2 py-2 group-data-[collapsible=icon]:px-0">
-          <SidebarGroup className="group-data-[collapsible=icon]:px-0">
-            <SidebarGroupContent>
-              <SidebarMenu className="gap-1 group-data-[collapsible=icon]:items-center">
-                {mainItems.map((item) => {
-                  const Icon = item.icon;
-                  const isActive =
-                    pathname === item.href || (item.href !== config.homeHref && pathname.startsWith(item.href));
-                  const itemBadge = getItemBadge(item);
+          {config.groups ? (
+            config.groups.map((group, groupIdx) => {
+              const groupItems = group.items.filter((item) => !item.hidden && !isFooterItem(item.key));
+              if (groupItems.length === 0) return null;
 
-                  return (
-                    <SidebarMenuItem
-                      key={item.key}
-                      className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center"
-                    >
-                      <SidebarMenuButton
-                        asChild
-                        isActive={isActive}
-                        tooltip={item.label}
-                        className={`h-9.5 rounded-lg px-2.5 text-[0.92rem] font-medium transition-all duration-150 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-0! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:items-center ${
-                          isActive
-                            ? "bg-amber! text-navy! data-[active=true]:bg-amber! data-[active=true]:text-white! hover:bg-amber! hover:text-navy! [--sidebar-accent:var(--amber)] [--sidebar-accent-foreground:var(--navy)] font-semibold shadow-xs"
-                            : "text-white/80 hover:bg-white/10! hover:text-white!"
-                        }`}
-                      >
-                        <Link
-                          href={item.href}
-                          className="flex h-full w-full items-center justify-start gap-3 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0"
-                        >
-                          <Icon
-                            className={`size-4.5 shrink-0 transition-colors my-auto ${isActive ? "text-white!" : "text-white/80"}`}
-                          />
-                          <span className="truncate group-data-[collapsible=icon]:hidden">{item.label}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                      {itemBadge !== undefined && (
-                        <SidebarMenuBadge
-                          className={`top-1/2! right-2! -translate-y-1/2 font-bold text-[0.7rem] px-1.5 py-0.5 rounded-full group-data-[collapsible=icon]:hidden transition-colors ${
-                            itemBadge === "!"
-                              ? "bg-amber-400! text-navy! font-black! animate-pulse shadow-xs"
-                              : isActive
-                                ? "bg-navy! text-white/80!"
-                                : "bg-amber text-navy"
-                          }`}
-                        >
-                          {itemBadge}
-                        </SidebarMenuBadge>
-                      )}
-                    </SidebarMenuItem>
-                  );
-                })}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
+              return (
+                <SidebarGroup
+                  key={group.label ?? `group-${groupIdx}`}
+                  className="group-data-[collapsible=icon]:px-0 pt-1 pb-3.5"
+                >
+                  {group.label && (
+                    <SidebarGroupLabel className="text-white/40 text-[0.68rem] font-bold tracking-wider uppercase px-2.5 py-1.5 select-none group-data-[collapsible=icon]:hidden">
+                      {group.label}
+                    </SidebarGroupLabel>
+                  )}
+                  <SidebarGroupContent>
+                    <SidebarMenu className="gap-1 group-data-[collapsible=icon]:items-center">
+                      {groupItems.map(renderMenuItem)}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </SidebarGroup>
+              );
+            })
+          ) : (
+            <SidebarGroup className="group-data-[collapsible=icon]:px-0">
+              <SidebarGroupContent>
+                <SidebarMenu className="gap-1 group-data-[collapsible=icon]:items-center">
+                  {mainItems.map(renderMenuItem)}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          )}
         </SidebarContent>
 
         {/* Sidebar Footer: Profile & Settings Navigation + User Card & Logout */}

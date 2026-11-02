@@ -12,12 +12,7 @@ interface GradingHeaderProps {
   onAdd: () => void;
 }
 
-export function GradingHeader({
-  searchQuery,
-  onSearchChange,
-  activeTab = "schools",
-  onAdd,
-}: GradingHeaderProps) {
+export function GradingHeader({ searchQuery, onSearchChange, activeTab = "schools", onAdd }: GradingHeaderProps) {
   let searchPlaceholder = "Search schools, codes, or addresses...";
   let addLabel = "Add academic institution";
 

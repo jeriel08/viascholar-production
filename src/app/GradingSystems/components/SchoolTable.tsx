@@ -1,6 +1,7 @@
 "use client";
 
-import { Building2, Eye, RotateCcw } from "lucide-react";
+import { Building2, ChevronLeft, ChevronRight, Eye, RotateCcw } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -15,12 +16,84 @@ interface SchoolTableProps {
   loadError: string;
   onRetry: () => void;
   onSelect: (school: School) => void;
+  pageSize?: number;
+  searchQuery?: string;
+  currentPage?: number;
+  onPageChange?: (page: number) => void;
 }
 
+const DEFAULT_PAGE_SIZE = 10;
 const SKELETON_ROWS = ["row-1", "row-2", "row-3", "row-4", "row-5", "row-6"];
 const HEAD = "text-center! text-xs font-bold! uppercase tracking-wider text-[#8a8a84]!";
 
-export function SchoolTable({ schools, totalCount, loading, loadError, onRetry, onSelect }: SchoolTableProps) {
+type PageItem = number | "ellipsis-start" | "ellipsis-end";
+
+function getPageNumbers(current: number, total: number): PageItem[] {
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+  if (current <= 4) {
+    return [1, 2, 3, 4, 5, "ellipsis-end", total];
+  }
+  if (current >= total - 3) {
+    return [1, "ellipsis-start", total - 4, total - 3, total - 2, total - 1, total];
+  }
+  return [1, "ellipsis-start", current - 1, current, current + 1, "ellipsis-end", total];
+}
+
+export function SchoolTable({
+  schools,
+  totalCount,
+  loading,
+  loadError,
+  onRetry,
+  onSelect,
+  pageSize = DEFAULT_PAGE_SIZE,
+  searchQuery,
+  currentPage: controlledPage,
+  onPageChange: controlledOnPageChange,
+}: SchoolTableProps) {
+  const [internalPage, setInternalPage] = useState(1);
+  const isControlled = controlledPage !== undefined;
+  const currentPage = isControlled ? controlledPage : internalPage;
+
+  // Reset to first page whenever search query changes
+  // biome-ignore lint/correctness/useExhaustiveDependencies: searchQuery is the trigger on purpose
+  useEffect(() => {
+    if (isControlled) {
+      controlledOnPageChange?.(1);
+    } else {
+      setInternalPage(1);
+    }
+  }, [searchQuery, isControlled, controlledOnPageChange]);
+
+  const totalPages = Math.max(1, Math.ceil(schools.length / pageSize));
+  const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
+
+  // If filtered list shrinks below current page, adjust page
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      if (isControlled) {
+        controlledOnPageChange?.(totalPages);
+      } else {
+        setInternalPage(totalPages);
+      }
+    }
+  }, [currentPage, totalPages, isControlled, controlledOnPageChange]);
+
+  const startIndex = (safeCurrentPage - 1) * pageSize;
+  const paginatedSchools = useMemo(() => {
+    return schools.slice(startIndex, startIndex + pageSize);
+  }, [schools, startIndex, pageSize]);
+
+  const handlePageChange = (p: number) => {
+    if (isControlled) {
+      controlledOnPageChange?.(p);
+    } else {
+      setInternalPage(p);
+    }
+  };
+
   return (
     <Card className="mt-5 rounded-[18px]! shadow-va-sm">
       <CardHeader>
@@ -76,7 +149,7 @@ export function SchoolTable({ schools, totalCount, loading, loadError, onRetry, 
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {schools.map((s) => (
+                {paginatedSchools.map((s) => (
                   <TableRow
                     key={s.school_id}
                     className="cursor-pointer border-line transition-colors hover:bg-tint/60"
@@ -143,6 +216,63 @@ export function SchoolTable({ schools, totalCount, loading, loadError, onRetry, 
                 ))}
               </TableBody>
             </Table>
+
+            {schools.length > 0 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between border-t border-line px-6 py-3.5 gap-3 text-xs text-muted-foreground">
+                <span>
+                  Showing {startIndex + 1} to {Math.min(startIndex + pageSize, schools.length)} of {schools.length}{" "}
+                  {schools.length === 1 ? "school" : "schools"}
+                </span>
+                {totalPages > 1 && (
+                  <div className="flex items-center gap-1.5">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handlePageChange(Math.max(1, safeCurrentPage - 1))}
+                      disabled={safeCurrentPage <= 1}
+                      className="size-8 rounded-lg"
+                      aria-label="Previous page"
+                    >
+                      <ChevronLeft className="size-4" />
+                    </Button>
+                    {getPageNumbers(safeCurrentPage, totalPages).map((p) =>
+                      typeof p === "string" ? (
+                        <span key={p} className="px-1 text-xs text-muted-foreground">
+                          …
+                        </span>
+                      ) : (
+                        <Button
+                          key={`page-${p}`}
+                          type="button"
+                          variant={p === safeCurrentPage ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => handlePageChange(p)}
+                          className={`size-8 p-0 text-xs font-semibold ${
+                            p === safeCurrentPage ? "bg-[#0a4f42] text-white hover:bg-[#083c32]" : "text-foreground"
+                          }`}
+                          aria-label={`Go to page ${p}`}
+                          aria-current={p === safeCurrentPage ? "page" : undefined}
+                        >
+                          {p}
+                        </Button>
+                      ),
+                    )}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handlePageChange(Math.min(totalPages, safeCurrentPage + 1))}
+                      disabled={safeCurrentPage >= totalPages}
+                      className="size-8 rounded-lg"
+                      aria-label="Next page"
+                    >
+                      <ChevronRight className="size-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </CardContent>

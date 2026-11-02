@@ -98,6 +98,8 @@ export const schoolSchema = z.object({
   contact_email: z.string().trim().email("Invalid email address.").optional().or(z.literal("")),
   contact_number: z.string().trim().max(50, "Contact number is too long.").optional(),
   grading_system_id: z.number().int().positive().optional().nullable(),
+  grading_scale: z.string().trim().max(50).optional().nullable(),
+  special_codes: z.record(z.string(), z.string()).optional(),
   is_active: z.boolean().optional(),
 });
 
