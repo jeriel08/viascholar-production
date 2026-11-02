@@ -55,6 +55,24 @@ export const academicProgramSchema = z.object({
 
 export type AcademicProgramFormValues = z.infer<typeof academicProgramSchema>;
 
+// School institution schema (mirrors CreateSchoolDto on backend)
+export const schoolSchema = z.object({
+  school_name: z.string().trim().min(1, "School name is required.").max(150, "School name is too long."),
+  school_code: z
+    .string()
+    .trim()
+    .max(50, "School code is too long.")
+    .optional()
+    .transform((v) => (v ? v.toUpperCase() : undefined)),
+  address: z.string().trim().max(500, "Address is too long.").optional(),
+  contact_email: z.string().trim().email("Invalid email address.").optional().or(z.literal("")),
+  contact_number: z.string().trim().max(50, "Contact number is too long.").optional(),
+  grading_system_id: z.number().int().positive().optional().nullable(),
+  is_active: z.boolean().optional(),
+});
+
+export type SchoolFormValues = z.infer<typeof schoolSchema>;
+
 // Academic year level options (1 to 5: College, 6: Masteral, 7: Doctoral)
 export const YEAR_LEVEL_OPTIONS = [
   { value: "1", label: "1st Year" },

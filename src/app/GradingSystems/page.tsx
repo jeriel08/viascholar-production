@@ -10,35 +10,44 @@ import {
   type AcademicProgram,
   type AcademicProgramInput,
   createAcademicProgram,
+  createSchool,
   createSchoolGrading,
   deleteAcademicProgram,
+  deleteSchool,
   deleteSchoolGrading,
   listAcademicPrograms,
   listSchoolGradings,
+  listSchools,
+  type School,
   type SchoolGrading,
   type SchoolGradingInput,
+  type SchoolInput,
   updateAcademicProgram,
+  updateSchool,
   updateSchoolGrading,
 } from "@/lib/api/settings";
 import { AddGradingSheet } from "./components/AddGradingSheet";
 import { AddProgramSheet } from "./components/AddProgramSheet";
+import { AddSchoolSheet } from "./components/AddSchoolSheet";
 import { GradingHeader } from "./components/GradingHeader";
 import { GradingSheet } from "./components/GradingSheet";
 import { GradingTable } from "./components/GradingTable";
 import { ProgramSheet } from "./components/ProgramSheet";
 import { ProgramTable } from "./components/ProgramTable";
+import { SchoolSheet } from "./components/SchoolSheet";
+import { SchoolTable } from "./components/SchoolTable";
 
 export default function GradingSystemsPage() {
   const { user } = useAuth();
   const { showToast } = useToast();
 
-  const [activeTab, setActiveTab] = useState<"schools" | "programs">("schools");
+  const [activeTab, setActiveTab] = useState<"schools" | "programs" | "grading-scales">("schools");
 
-  // Schools state
-  const [schools, setSchools] = useState<SchoolGrading[]>([]);
+  // Normalized Schools (Institutions) state
+  const [schools, setSchools] = useState<School[]>([]);
   const [loadingSchools, setLoadingSchools] = useState(true);
   const [schoolsError, setSchoolsError] = useState("");
-  const [selectedSchool, setSelectedSchool] = useState<SchoolGrading | null>(null);
+  const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
   const [showAddSchool, setShowAddSchool] = useState(false);
 
   // Programs state
@@ -48,17 +57,24 @@ export default function GradingSystemsPage() {
   const [selectedProgram, setSelectedProgram] = useState<AcademicProgram | null>(null);
   const [showAddProgram, setShowAddProgram] = useState(false);
 
+  // Grading Systems state
+  const [gradingScales, setGradingScales] = useState<SchoolGrading[]>([]);
+  const [loadingGradingScales, setLoadingGradingScales] = useState(true);
+  const [gradingScalesError, setGradingScalesError] = useState("");
+  const [selectedGradingScale, setSelectedGradingScale] = useState<SchoolGrading | null>(null);
+  const [showAddGradingScale, setShowAddGradingScale] = useState(false);
+
   // Search query (shared header)
   const [searchQuery, setSearchQuery] = useState("");
 
   const canManage = user?.role === "ADMIN" || user?.role === "GRANTOR";
 
-  // 1. Fetch schools
+  // 1. Fetch normalized schools
   const fetchSchools = useCallback(async () => {
     setLoadingSchools(true);
     setSchoolsError("");
     try {
-      setSchools(await listSchoolGradings());
+      setSchools(await listSchools(false));
     } catch (err) {
       console.error("Failed to load schools:", err);
       setSchoolsError(err instanceof ApiError ? err.message : "Failed to load schools.");
@@ -81,19 +97,38 @@ export default function GradingSystemsPage() {
     }
   }, []);
 
+  // 3. Fetch grading system scales
+  const fetchGradingScales = useCallback(async () => {
+    setLoadingGradingScales(true);
+    setGradingScalesError("");
+    try {
+      setGradingScales(await listSchoolGradings());
+    } catch (err) {
+      console.error("Failed to load grading scales:", err);
+      setGradingScalesError(err instanceof ApiError ? err.message : "Failed to load grading scales.");
+    } finally {
+      setLoadingGradingScales(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchSchools();
     fetchPrograms();
-  }, [fetchSchools, fetchPrograms]);
+    fetchGradingScales();
+  }, [fetchSchools, fetchPrograms, fetchGradingScales]);
 
   // Real-time socket events
-  useSocketEvent("school_grading:created", fetchSchools);
-  useSocketEvent("school_grading:updated", fetchSchools);
-  useSocketEvent("school_grading:deleted", fetchSchools);
+  useSocketEvent("school:created", fetchSchools);
+  useSocketEvent("school:updated", fetchSchools);
+  useSocketEvent("school:deleted", fetchSchools);
 
   useSocketEvent("program:created", fetchPrograms);
   useSocketEvent("program:updated", fetchPrograms);
   useSocketEvent("program:deleted", fetchPrograms);
+
+  useSocketEvent("school_grading:created", fetchGradingScales);
+  useSocketEvent("school_grading:updated", fetchGradingScales);
+  useSocketEvent("school_grading:deleted", fetchGradingScales);
 
   // Filtered lists
   const filteredSchools = useMemo(() => {
@@ -102,8 +137,9 @@ export default function GradingSystemsPage() {
     return schools.filter(
       (s) =>
         s.school_name.toLowerCase().includes(q) ||
-        s.grading_scale.toLowerCase().includes(q) ||
-        (s.notes ?? "").toLowerCase().includes(q),
+        (s.school_code ?? "").toLowerCase().includes(q) ||
+        (s.address ?? "").toLowerCase().includes(q) ||
+        (s.grading_system?.grading_scale ?? "").toLowerCase().includes(q),
     );
   }, [schools, searchQuery]);
 
@@ -119,11 +155,22 @@ export default function GradingSystemsPage() {
     );
   }, [programs, searchQuery]);
 
-  // Handlers for Schools
-  async function handleCreateSchool(input: SchoolGradingInput): Promise<void> {
+  const filteredGradingScales = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (q === "") return gradingScales;
+    return gradingScales.filter(
+      (s) =>
+        s.school_name.toLowerCase().includes(q) ||
+        s.grading_scale.toLowerCase().includes(q) ||
+        (s.notes ?? "").toLowerCase().includes(q),
+    );
+  }, [gradingScales, searchQuery]);
+
+  // Handlers for School Institutions
+  async function handleCreateSchool(input: SchoolInput): Promise<void> {
     try {
-      await createSchoolGrading(input);
-      showToast("School grading system added successfully.");
+      await createSchool(input);
+      showToast("School institution registered successfully.");
       setShowAddSchool(false);
       await fetchSchools();
     } catch (err) {
@@ -132,10 +179,10 @@ export default function GradingSystemsPage() {
     }
   }
 
-  async function handleUpdateSchool(id: number, input: Partial<SchoolGradingInput>): Promise<void> {
+  async function handleUpdateSchool(id: number, input: Partial<SchoolInput>): Promise<void> {
     try {
-      await updateSchoolGrading(id, input);
-      showToast("School grading system updated successfully.");
+      await updateSchool(id, input);
+      showToast("School institution updated successfully.");
       await fetchSchools();
     } catch (err) {
       console.error("Failed to update school:", err);
@@ -145,8 +192,8 @@ export default function GradingSystemsPage() {
 
   async function handleDeleteSchool(id: number): Promise<void> {
     try {
-      await deleteSchoolGrading(id);
-      showToast("School grading system removed successfully.");
+      const res = await deleteSchool(id);
+      showToast(res.message || "School institution removed successfully.");
       setSelectedSchool(null);
       await fetchSchools();
     } catch (err) {
@@ -191,11 +238,49 @@ export default function GradingSystemsPage() {
     }
   }
 
+  // Handlers for Grading Scales
+  async function handleCreateGradingScale(input: SchoolGradingInput): Promise<void> {
+    try {
+      await createSchoolGrading(input);
+      showToast("Grading scale added successfully.");
+      setShowAddGradingScale(false);
+      await fetchGradingScales();
+    } catch (err) {
+      console.error("Failed to add grading scale:", err);
+      throw new Error(err instanceof ApiError ? err.message : "Failed to add grading scale.");
+    }
+  }
+
+  async function handleUpdateGradingScale(id: number, input: Partial<SchoolGradingInput>): Promise<void> {
+    try {
+      await updateSchoolGrading(id, input);
+      showToast("Grading scale updated successfully.");
+      await fetchGradingScales();
+    } catch (err) {
+      console.error("Failed to update grading scale:", err);
+      throw new Error(err instanceof ApiError ? err.message : "Failed to update grading scale.");
+    }
+  }
+
+  async function handleDeleteGradingScale(id: number): Promise<void> {
+    try {
+      await deleteSchoolGrading(id);
+      showToast("Grading scale removed successfully.");
+      setSelectedGradingScale(null);
+      await fetchGradingScales();
+    } catch (err) {
+      console.error("Failed to delete grading scale:", err);
+      throw new Error(err instanceof ApiError ? err.message : "Failed to delete grading scale.");
+    }
+  }
+
   const handleOpenAdd = () => {
     if (activeTab === "schools") {
       setShowAddSchool(true);
-    } else {
+    } else if (activeTab === "programs") {
       setShowAddProgram(true);
+    } else {
+      setShowAddGradingScale(true);
     }
   };
 
@@ -212,7 +297,7 @@ export default function GradingSystemsPage() {
         <Tabs
           value={activeTab}
           onValueChange={(v) => {
-            setActiveTab(v as "schools" | "programs");
+            setActiveTab(v as "schools" | "programs" | "grading-scales");
             setSearchQuery("");
           }}
           className="mt-2"
@@ -222,7 +307,7 @@ export default function GradingSystemsPage() {
               value="schools"
               className="text-xs font-semibold px-4 py-1.5 rounded-lg data-[state=active]:bg-white data-[state=active]:text-navy data-[state=active]:shadow-xs"
             >
-              Schools & Grading Scales ({schools.length})
+              Schools ({schools.length})
             </TabsTrigger>
             <TabsTrigger
               value="programs"
@@ -230,10 +315,16 @@ export default function GradingSystemsPage() {
             >
               Academic Programs ({programs.length})
             </TabsTrigger>
+            <TabsTrigger
+              value="grading-scales"
+              className="text-xs font-semibold px-4 py-1.5 rounded-lg data-[state=active]:bg-white data-[state=active]:text-navy data-[state=active]:shadow-xs"
+            >
+              Grading Scales ({gradingScales.length})
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="schools">
-            <GradingTable
+            <SchoolTable
               schools={filteredSchools}
               totalCount={schools.length}
               loading={loadingSchools}
@@ -251,23 +342,37 @@ export default function GradingSystemsPage() {
               loadError={programsError}
               onRetry={fetchPrograms}
               onSelect={setSelectedProgram}
+              searchQuery={searchQuery}
+            />
+          </TabsContent>
+
+          <TabsContent value="grading-scales">
+            <GradingTable
+              schools={filteredGradingScales}
+              totalCount={gradingScales.length}
+              loading={loadingGradingScales}
+              loadError={gradingScalesError}
+              onRetry={fetchGradingScales}
+              onSelect={setSelectedGradingScale}
             />
           </TabsContent>
         </Tabs>
       </div>
 
       {/* Schools Sheets */}
-      <GradingSheet
+      <SchoolSheet
         school={selectedSchool}
-        onClose={() => setSelectedSchool(null)}
-        canDelete={canManage}
+        open={!!selectedSchool}
+        onOpenChange={(open) => !open && setSelectedSchool(null)}
+        gradingSystems={gradingScales}
         onUpdate={handleUpdateSchool}
         onDelete={handleDeleteSchool}
       />
 
-      <AddGradingSheet
+      <AddSchoolSheet
         open={showAddSchool}
         onOpenChange={setShowAddSchool}
+        gradingSystems={gradingScales}
         onCreate={handleCreateSchool}
       />
 
@@ -281,10 +386,21 @@ export default function GradingSystemsPage() {
         onDelete={handleDeleteProgram}
       />
 
-      <AddProgramSheet
-        open={showAddProgram}
-        onOpenChange={setShowAddProgram}
-        onCreate={handleCreateProgram}
+      <AddProgramSheet open={showAddProgram} onOpenChange={setShowAddProgram} onCreate={handleCreateProgram} />
+
+      {/* Grading Scales Sheets */}
+      <GradingSheet
+        school={selectedGradingScale}
+        onClose={() => setSelectedGradingScale(null)}
+        canDelete={canManage}
+        onUpdate={handleUpdateGradingScale}
+        onDelete={handleDeleteGradingScale}
+      />
+
+      <AddGradingSheet
+        open={showAddGradingScale}
+        onOpenChange={setShowAddGradingScale}
+        onCreate={handleCreateGradingScale}
       />
     </div>
   );

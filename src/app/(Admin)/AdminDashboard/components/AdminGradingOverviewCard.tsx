@@ -29,7 +29,7 @@ export function AdminGradingOverviewCard({ schools }: AdminGradingOverviewCardPr
               </p>
             </div>
           </div>
-          <Link href="/GlobalSettings" className="shrink-0">
+          <Link href="/GradingSystems" className="shrink-0">
             <Button
               variant="ghost"
               size="sm"

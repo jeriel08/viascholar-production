@@ -74,7 +74,7 @@ export function AdminKpiCards({ metrics }: AdminKpiCardsProps) {
       </Link>
 
       {/* 3. School Grading Systems */}
-      <Link href="/GlobalSettings" className="group block focus-visible:outline-none">
+      <Link href="/GradingSystems" className="group block focus-visible:outline-none">
         <Card className="rounded-[16px]! border-line bg-white shadow-va-sm transition-all duration-200 hover:shadow-md hover:border-[#0a4f42]/30">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">

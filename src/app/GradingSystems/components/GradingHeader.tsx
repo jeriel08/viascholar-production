@@ -8,7 +8,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 interface GradingHeaderProps {
   searchQuery: string;
   onSearchChange: (value: string) => void;
-  activeTab?: "schools" | "programs";
+  activeTab?: "schools" | "programs" | "grading-scales";
   onAdd: () => void;
 }
 
@@ -18,9 +18,16 @@ export function GradingHeader({
   activeTab = "schools",
   onAdd,
 }: GradingHeaderProps) {
-  const isSchools = activeTab === "schools";
-  const searchPlaceholder = isSchools ? "Search schools or grading scales..." : "Search programs or codes...";
-  const addLabel = isSchools ? "Add school grading system" : "Add academic program";
+  let searchPlaceholder = "Search schools, codes, or addresses...";
+  let addLabel = "Add academic institution";
+
+  if (activeTab === "programs") {
+    searchPlaceholder = "Search programs or codes...";
+    addLabel = "Add academic program";
+  } else if (activeTab === "grading-scales") {
+    searchPlaceholder = "Search grading scales or rules...";
+    addLabel = "Add grading scale";
+  }
 
   return (
     <PageHeader

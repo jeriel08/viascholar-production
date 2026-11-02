@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { type AcademicProgram, listAcademicPrograms, listSchoolGradings, type SchoolGrading } from "@/lib/api/settings";
+import { type AcademicProgram, listAcademicPrograms, listSchools, type School } from "@/lib/api/settings";
 import { type ApplicationFormValues, YEAR_LEVEL_OPTIONS } from "@/lib/validation";
 import { parseApplicationForm } from "./wizard-helpers";
 
@@ -84,14 +84,14 @@ export function ApplicationStep({
   const [submitting, setSubmitting] = useState(false);
 
   const [programs, setPrograms] = useState<AcademicProgram[]>([]);
-  const [schools, setSchools] = useState<SchoolGrading[]>([]);
+  const [schools, setSchools] = useState<School[]>([]);
   const [loadingOptions, setLoadingOptions] = useState(true);
   const [isCustomProgram, setIsCustomProgram] = useState(false);
   const [isCustomSchool, setIsCustomSchool] = useState(false);
 
   useEffect(() => {
     let active = true;
-    Promise.all([listAcademicPrograms(true), listSchoolGradings()])
+    Promise.all([listAcademicPrograms(true), listSchools(true)])
       .then(([progs, schs]) => {
         if (!active) return;
         setPrograms(progs);
@@ -155,6 +155,14 @@ export function ApplicationStep({
     const found = schools.find((s) => s.school_name.toLowerCase() === values.school_name.toLowerCase());
     return found ? found.school_name : "OTHER";
   }, [isCustomSchool, values.school_name, schools]);
+
+  // Higher-education schools only (excluding DepEd high-school options)
+  const collegeSchools = useMemo(() => {
+    return schools.filter(
+      (s) =>
+        s.is_active && !/deped|high\s*school|senior\s*high/i.test(s.school_name) && !/deped/i.test(s.school_code || ""),
+    );
+  }, [schools]);
 
   // Pick up profile data once it arrives, without clobbering user edits.
   useEffect(() => {
@@ -327,6 +335,10 @@ export function ApplicationStep({
                 } else {
                   setIsCustomSchool(false);
                   set("school_name", v);
+                  const chosenSchool = schools.find((s) => s.school_name === v);
+                  if (chosenSchool?.address && (!values.school_address || values.school_address.trim() === "")) {
+                    set("school_address", chosenSchool.address);
+                  }
                 }
               }}
               disabled={loadingOptions}
@@ -342,11 +354,11 @@ export function ApplicationStep({
               <SelectContent className="max-h-72">
                 <SelectGroup>
                   <SelectLabel className="font-semibold text-xs text-navy/70 uppercase tracking-wider px-2 py-1">
-                    Accredited / Registered Schools
+                    Accredited Colleges & Universities
                   </SelectLabel>
-                  {schools.map((s) => (
+                  {collegeSchools.map((s) => (
                     <SelectItem key={s.school_id} value={s.school_name} className="text-sm!">
-                      {s.school_name}
+                      {s.school_name} {s.school_code ? `(${s.school_code})` : ""}
                     </SelectItem>
                   ))}
                 </SelectGroup>

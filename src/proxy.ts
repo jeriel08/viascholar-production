@@ -50,7 +50,11 @@ function isRouteAllowedForRole(pathname: string, role: string): boolean {
   const upper = role.toUpperCase();
 
   // Shared Staff routes
-  if (pathname.startsWith("/GradingSystems")) {
+  if (
+    pathname.startsWith("/GradingSystems") ||
+    pathname.startsWith("/Schools") ||
+    pathname.startsWith("/AcademicPrograms")
+  ) {
     return upper === "ADMIN" || upper === "COORDINATOR" || upper === "GRANTOR";
   }
 

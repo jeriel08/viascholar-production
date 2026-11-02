@@ -127,3 +127,44 @@ export async function deleteAcademicProgram(id: number): Promise<{ message: stri
   return apiDelete<{ message: string }>(`${B}/programs/${id}`);
 }
 
+export interface School {
+  school_id: number;
+  school_name: string;
+  school_code: string | null;
+  address: string | null;
+  contact_email: string | null;
+  contact_number: string | null;
+  is_active: boolean;
+  grading_system_id: number | null;
+  grading_system?: SchoolGrading | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SchoolInput {
+  school_name: string;
+  school_code?: string;
+  address?: string;
+  contact_email?: string;
+  contact_number?: string;
+  grading_system_id?: number;
+  is_active?: boolean;
+}
+
+export async function listSchools(onlyActive = false): Promise<School[]> {
+  const query = onlyActive ? "?only_active=true" : "";
+  return apiGet<School[]>(`${B}/schools-list${query}`);
+}
+
+export async function createSchool(data: SchoolInput): Promise<School> {
+  return apiPost<School>(`${B}/schools-list`, data);
+}
+
+export async function updateSchool(id: number, data: Partial<SchoolInput>): Promise<School> {
+  return apiPatch<School>(`${B}/schools-list/${id}`, data);
+}
+
+export async function deleteSchool(id: number): Promise<{ message: string; school?: School }> {
+  return apiDelete<{ message: string; school?: School }>(`${B}/schools-list/${id}`);
+}
+

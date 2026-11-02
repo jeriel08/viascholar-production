@@ -1,6 +1,7 @@
 "use client";
 
-import { BookOpen, Eye, RotateCcw } from "lucide-react";
+import { BookOpen, ChevronLeft, ChevronRight, Eye, RotateCcw } from "lucide-react";
+import { useEffect, useState } from "react";
 import { TINT } from "@/components/Adminshared";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,10 +17,30 @@ interface ProgramTableProps {
   loadError: string;
   onRetry: () => void;
   onSelect: (program: AcademicProgram) => void;
+  pageSize?: number;
+  searchQuery?: string;
+  currentPage?: number;
+  onPageChange?: (page: number) => void;
 }
 
+const DEFAULT_PAGE_SIZE = 10;
 const SKELETON_ROWS = ["row-1", "row-2", "row-3", "row-4", "row-5", "row-6"];
 const HEAD = "text-center! text-xs font-bold! uppercase tracking-wider text-[#8a8a84]!";
+
+type PageItem = number | "ellipsis-start" | "ellipsis-end";
+
+function getPageNumbers(current: number, total: number): PageItem[] {
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+  if (current <= 4) {
+    return [1, 2, 3, 4, 5, "ellipsis-end", total];
+  }
+  if (current >= total - 3) {
+    return [1, "ellipsis-start", total - 4, total - 3, total - 2, total - 1, total];
+  }
+  return [1, "ellipsis-start", current - 1, current, current + 1, "ellipsis-end", total];
+}
 
 export function ProgramTable({
   programs,
@@ -28,13 +49,59 @@ export function ProgramTable({
   loadError,
   onRetry,
   onSelect,
+  pageSize = DEFAULT_PAGE_SIZE,
+  searchQuery,
+  currentPage: currentPageProp,
+  onPageChange: onPageChangeProp,
 }: ProgramTableProps) {
+  const [internalPage, setInternalPage] = useState(1);
+  const isControlled = currentPageProp !== undefined;
+
+  const totalPages = Math.max(1, Math.ceil(programs.length / pageSize));
+  const activePage = isControlled ? currentPageProp : internalPage;
+  const safeCurrentPage = Math.min(Math.max(1, activePage), totalPages);
+
+  // Reset to first page when search filter changes
+  useEffect(() => {
+    if (!isControlled && searchQuery !== undefined) {
+      setInternalPage(1);
+    }
+  }, [searchQuery, isControlled]);
+
+  // Keep page within bounds if items are removed
+  useEffect(() => {
+    if (!isControlled && internalPage > totalPages) {
+      setInternalPage(totalPages);
+    }
+  }, [internalPage, totalPages, isControlled]);
+
+  const handlePageChange = (newPage: number) => {
+    if (onPageChangeProp) {
+      onPageChangeProp(newPage);
+    }
+    if (!isControlled) {
+      setInternalPage(newPage);
+    }
+  };
+
+  const startIndex = (safeCurrentPage - 1) * pageSize;
+  const paginatedPrograms = programs.slice(startIndex, startIndex + pageSize);
+
   return (
     <Card className="mt-5 rounded-[18px]! shadow-va-sm">
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
         <p className="text-sm text-muted-foreground">
-          {!loading && !loadError && `${totalCount} ${totalCount === 1 ? "program" : "programs"}`}
+          {!loading &&
+            !loadError &&
+            (programs.length !== totalCount
+              ? `${programs.length} of ${totalCount} programs`
+              : `${totalCount} ${totalCount === 1 ? "program" : "programs"}`)}
         </p>
+        {!loading && !loadError && totalPages > 1 && (
+          <span className="text-xs text-muted-foreground font-medium">
+            Page {safeCurrentPage} of {totalPages}
+          </span>
+        )}
       </CardHeader>
 
       <CardContent className="px-0!">
@@ -58,13 +125,7 @@ export function ProgramTable({
         ) : loadError ? (
           <div className="flex flex-col items-center gap-3 px-6 py-12 text-center">
             <p className="text-sm text-bad">{loadError}</p>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="gap-2"
-              onClick={onRetry}
-            >
+            <Button type="button" variant="outline" size="sm" className="gap-2" onClick={onRetry}>
               <RotateCcw className="size-3.5" />
               Retry
             </Button>
@@ -90,7 +151,7 @@ export function ProgramTable({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {programs.map((prog) => (
+                {paginatedPrograms.map((prog) => (
                   <TableRow
                     key={prog.program_id}
                     className="cursor-pointer border-line transition-colors hover:bg-tint/60"
@@ -105,17 +166,12 @@ export function ProgramTable({
                       <div>
                         <p className="text-[0.92rem] font-semibold">{prog.program_name}</p>
                         {prog.description && (
-                          <p className="text-xs text-muted-foreground line-clamp-1">
-                            {prog.description}
-                          </p>
+                          <p className="text-xs text-muted-foreground line-clamp-1">{prog.description}</p>
                         )}
                       </div>
                     </TableCell>
                     <TableCell className="text-center">
-                      <Badge
-                        className="h-6 px-2.5 text-xs!"
-                        style={{ background: TINT, color: "#55554f" }}
-                      >
+                      <Badge className="h-6 px-2.5 text-xs!" style={{ background: TINT, color: "#55554f" }}>
                         {prog.category || "College"}
                       </Badge>
                     </TableCell>
@@ -146,10 +202,66 @@ export function ProgramTable({
                 ))}
               </TableBody>
             </Table>
+
+            {programs.length > 0 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between border-t border-line px-6 py-3.5 gap-3 text-xs text-muted-foreground">
+                <span>
+                  Showing {startIndex + 1} to {Math.min(startIndex + pageSize, programs.length)} of {programs.length}{" "}
+                  {programs.length === 1 ? "program" : "programs"}
+                </span>
+                {totalPages > 1 && (
+                  <div className="flex items-center gap-1.5">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handlePageChange(Math.max(1, safeCurrentPage - 1))}
+                      disabled={safeCurrentPage <= 1}
+                      className="size-8 rounded-lg"
+                      aria-label="Previous page"
+                    >
+                      <ChevronLeft className="size-4" />
+                    </Button>
+                    {getPageNumbers(safeCurrentPage, totalPages).map((p) =>
+                      typeof p === "string" ? (
+                        <span key={p} className="px-1 text-xs text-muted-foreground">
+                          …
+                        </span>
+                      ) : (
+                        <Button
+                          key={`page-${p}`}
+                          type="button"
+                          variant={p === safeCurrentPage ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => handlePageChange(p)}
+                          className={`size-8 p-0 text-xs font-semibold ${
+                            p === safeCurrentPage ? "bg-[#0a4f42] text-white hover:bg-[#083c32]" : "text-foreground"
+                          }`}
+                          aria-label={`Go to page ${p}`}
+                          aria-current={p === safeCurrentPage ? "page" : undefined}
+                        >
+                          {p}
+                        </Button>
+                      ),
+                    )}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handlePageChange(Math.min(totalPages, safeCurrentPage + 1))}
+                      disabled={safeCurrentPage >= totalPages}
+                      className="size-8 rounded-lg"
+                      aria-label="Next page"
+                    >
+                      <ChevronRight className="size-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </CardContent>
     </Card>
   );
 }
-
