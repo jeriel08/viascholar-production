@@ -10,18 +10,77 @@ import {
   Settings,
   User,
 } from "lucide-react";
-import type { NavItem, RoleSidebarConfig } from "./types";
+import type { NavGroup, NavItem, RoleSidebarConfig } from "./types";
+
+export const SCHOLAR_NAV_GROUPS: NavGroup[] = [
+  {
+    label: "General",
+    items: [
+      {
+        key: "dashboard",
+        label: "Home",
+        icon: Home,
+        href: "/scholardashboard",
+      },
+      {
+        key: "message",
+        label: "Messages",
+        icon: Mail,
+        href: "/scholarMessage",
+      },
+      { key: "forum", label: "Forum", icon: MessageSquare, href: "/SchoForum" },
+    ],
+  },
+  {
+    label: "Academics",
+    items: [
+      {
+        key: "enrollment",
+        label: "Enrollment",
+        icon: FileCheck,
+        href: "/scholar-enrollment",
+      },
+      {
+        key: "grade",
+        label: "Grades",
+        icon: GraduationCap,
+        href: "/ScholarGrade",
+      },
+      {
+        key: "prospectus",
+        label: "Prospectus",
+        icon: BookOpen,
+        href: "/scholarProspectus",
+      },
+    ],
+  },
+  {
+    label: "Scholarship",
+    items: [
+      {
+        key: "payment",
+        label: "Disbursements",
+        icon: CreditCard,
+        href: "/ScholarPayment",
+      },
+      {
+        key: "meeting",
+        label: "Meetings",
+        icon: Calendar,
+        href: "/scholarMeeting",
+      },
+    ],
+  },
+];
 
 export const SCHOLAR_NAV_ITEMS: NavItem[] = [
-  { key: "dashboard", label: "Home", icon: Home, href: "/scholardashboard" },
-  { key: "prospectus", label: "Prospectus", icon: BookOpen, href: "/scholarProspectus" },
-  { key: "enrollment", label: "Enrollment", icon: FileCheck, href: "/scholar-enrollment" },
-  { key: "grade", label: "Grades", icon: GraduationCap, href: "/ScholarGrade" },
-  { key: "message", label: "Messages", icon: Mail, href: "/scholarMessage" },
-  { key: "meeting", label: "Meetings", icon: Calendar, href: "/scholarMeeting" },
-  { key: "forum", label: "Forum", icon: MessageSquare, href: "/SchoForum" },
-  { key: "payment", label: "Disbursements", icon: CreditCard, href: "/ScholarPayment" },
-  { key: "settings", label: "Settings", icon: Settings, href: "/scholarSettings" },
+  ...SCHOLAR_NAV_GROUPS.flatMap((group) => group.items),
+  {
+    key: "settings",
+    label: "Settings",
+    icon: Settings,
+    href: "/scholarSettings",
+  },
   { key: "profile", label: "Profile", icon: User, href: "/schoProfile" },
 ];
 
@@ -30,4 +89,5 @@ export const SCHOLAR_SIDEBAR_CONFIG: RoleSidebarConfig = {
   profileHref: "/schoProfile",
   roleLabel: "Scholar",
   items: SCHOLAR_NAV_ITEMS,
+  groups: SCHOLAR_NAV_GROUPS,
 };

@@ -6,6 +6,7 @@ import { SocketContext } from "@/contexts/SocketContext";
 import {
   type BillingBreakdown,
   type CurrentEnrollmentState,
+  clearDraftDocument,
   discardEnrollmentDraft,
   type EnrolledSubjectItem,
   type EnrollmentAuditResult,
@@ -87,13 +88,18 @@ export function useScholarEnrollmentState() {
             size: data.enrollment.cor_document.file_size,
             url: data.enrollment.cor_document.file_url,
           });
+          setCorFile(null);
+          setSoaFile(null);
         } else {
+          setConsolidatedFile(null);
           if (data.enrollment.cor_document) {
             setCorFile({
               name: data.enrollment.cor_document.file_name,
               size: data.enrollment.cor_document.file_size,
               url: data.enrollment.cor_document.file_url,
             });
+          } else {
+            setCorFile(null);
           }
           if (data.enrollment.soa_document) {
             setSoaFile({
@@ -101,12 +107,24 @@ export function useScholarEnrollmentState() {
               size: data.enrollment.soa_document.file_size,
               url: data.enrollment.soa_document.file_url,
             });
+          } else {
+            setSoaFile(null);
           }
         }
-      } else if (data.scholar) {
+      } else {
         setAcademicYear("");
         setSemester("");
-        setYearLevel(data.scholar.current_year_level || 1);
+        setYearLevel(data.scholar?.current_year_level || 1);
+        setEnrolledSubjects([]);
+        setTotalAssessment(0);
+        setAssessmentDate("");
+        setBillingBreakdown({});
+        setCorDocId(undefined);
+        setSoaDocId(undefined);
+        setCorFile(null);
+        setSoaFile(null);
+        setConsolidatedFile(null);
+        setAuditResult(null);
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to load enrollment state.";
@@ -262,6 +280,54 @@ export function useScholarEnrollmentState() {
     }
   };
 
+  const handleClearCor = async () => {
+    try {
+      setCorFile(null);
+      setCorDocId(undefined);
+      setEnrolledSubjects([]);
+      setAuditResult(null);
+      await clearDraftDocument("cor");
+      toast.success("Proof of Enrolled Subjects removed from draft.");
+      await fetchState();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to clear document.");
+    }
+  };
+
+  const handleClearSoa = async () => {
+    try {
+      setSoaFile(null);
+      setSoaDocId(undefined);
+      setTotalAssessment(0);
+      setAssessmentDate("");
+      setBillingBreakdown({});
+      setAuditResult(null);
+      await clearDraftDocument("soa");
+      toast.success("Proof of Billing Assessment removed from draft.");
+      await fetchState();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to clear document.");
+    }
+  };
+
+  const handleClearConsolidated = async () => {
+    try {
+      setConsolidatedFile(null);
+      setCorDocId(undefined);
+      setSoaDocId(undefined);
+      setEnrolledSubjects([]);
+      setTotalAssessment(0);
+      setAssessmentDate("");
+      setBillingBreakdown({});
+      setAuditResult(null);
+      await clearDraftDocument("consolidated");
+      toast.success("Consolidated enrollment form removed from draft.");
+      await fetchState();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to clear document.");
+    }
+  };
+
   const getPayload = () => {
     const ay = academicYear || enrollmentState?.enrollment?.academic_year || "2025-2026";
     const sem = semester || enrollmentState?.enrollment?.semester || "1st Semester";
@@ -392,6 +458,9 @@ export function useScholarEnrollmentState() {
     handleCorUpload,
     handleSoaUpload,
     handleConsolidatedUpload,
+    handleClearCor,
+    handleClearSoa,
+    handleClearConsolidated,
     handleSaveDraft,
     handleDiscardDraft,
     handleSubmit,

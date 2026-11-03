@@ -47,6 +47,9 @@ export default function ScholarEnrollmentPage() {
     handleCorUpload,
     handleSoaUpload,
     handleConsolidatedUpload,
+    handleClearCor,
+    handleClearSoa,
+    handleClearConsolidated,
     handleSaveDraft,
     handleDiscardDraft,
     handleSubmit,
@@ -148,24 +151,15 @@ export default function ScholarEnrollmentPage() {
                   isUploadingConsolidated={isUploadingConsolidated}
                   consolidatedFile={consolidatedFile}
                   onUploadConsolidated={handleConsolidatedUpload}
-                  onClearConsolidated={() => {
-                    setConsolidatedFile(null);
-                    setCorDocId(undefined);
-                  }}
+                  onClearConsolidated={handleClearConsolidated}
                   isUploadingCor={isUploadingCor}
                   corFile={corFile}
                   onUploadCor={handleCorUpload}
-                  onClearCor={() => {
-                    setCorFile(null);
-                    setCorDocId(undefined);
-                  }}
+                  onClearCor={handleClearCor}
                   isUploadingSoa={isUploadingSoa}
                   soaFile={soaFile}
                   onUploadSoa={handleSoaUpload}
-                  onClearSoa={() => {
-                    setSoaFile(null);
-                    setSoaDocId(undefined);
-                  }}
+                  onClearSoa={handleClearSoa}
                 />
 
                 {/* Progressive Disclosure: OCR Loading Skeleton -> Empty State Guide -> Smooth Animated Review Cards */}

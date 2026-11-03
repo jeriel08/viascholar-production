@@ -265,6 +265,13 @@ export async function discardEnrollmentDraft(
   return apiDelete<{ message: string; count: number }>(`${E}/draft${qStr ? `?${qStr}` : ""}`);
 }
 
+// 7b. Clear a specific document from draft
+export async function clearDraftDocument(
+  docType: "cor" | "soa" | "consolidated",
+): Promise<{ message: string; count?: number }> {
+  return apiDelete<{ message: string; count?: number }>(`${E}/draft/document/${docType}`);
+}
+
 // 8. Submit final enrollment
 export async function submitTermEnrollment(
   payload: SubmitEnrollmentPayload,
