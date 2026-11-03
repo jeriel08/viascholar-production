@@ -56,18 +56,6 @@ export function ScholarTermContextCard({ enrollmentState, loading, onRefresh }: 
   };
 
   const enrollment = enrollmentState?.enrollment;
-  const yearLevel = enrollment?.year_level || enrollmentState?.scholar?.current_year_level || 1;
-  const academicYear = enrollment?.academic_year;
-  const semester = enrollment?.semester;
-
-  let termSubtitle = `Year ${yearLevel} Scholar • Ready for Term Enrollment`;
-  if (academicYear && semester) {
-    termSubtitle = `Academic Year ${academicYear} • ${semester} • Year ${yearLevel}`;
-  } else if (academicYear) {
-    termSubtitle = `Academic Year ${academicYear} • Year ${yearLevel}`;
-  } else if (semester) {
-    termSubtitle = `${semester} • Year ${yearLevel}`;
-  }
 
   return (
     <Card className="shadow-xs border-border/80">
@@ -84,15 +72,14 @@ export function ScholarTermContextCard({ enrollmentState, loading, onRefresh }: 
             {enrollmentState.scholar.school_name || "Enrolled University"} •{" "}
             {enrollmentState.scholar.course_of_study || "Degree Program"}
           </p>
-          <div className="flex items-center gap-2 flex-wrap text-xs">
-            <span className="font-semibold text-emerald-800">{termSubtitle}</span>
-            {completedPrev && !enrollment && (
+          {completedPrev && !enrollment && (
+            <div className="flex items-center gap-2 flex-wrap text-xs">
               <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-800 border border-emerald-200">
                 <CheckCircle2 className="size-3 text-emerald-600" />
                 Previous Term (AY {completedPrev.academic_year} {completedPrev.semester}) Completed
               </span>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-2 shrink-0">

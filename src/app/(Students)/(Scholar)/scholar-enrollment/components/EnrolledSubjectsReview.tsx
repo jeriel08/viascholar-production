@@ -12,10 +12,28 @@ interface EnrolledSubjectsReviewProps {
   subjects: EnrolledSubjectItem[];
   onChangeSubjects?: (subjects: EnrolledSubjectItem[]) => void;
   isReadOnly?: boolean;
+  academicYear?: string;
+  semester?: string;
+  yearLevel?: number | string;
 }
 
-export function EnrolledSubjectsReview({ subjects, onChangeSubjects, isReadOnly }: EnrolledSubjectsReviewProps) {
+export function EnrolledSubjectsReview({
+  subjects,
+  onChangeSubjects,
+  isReadOnly,
+  academicYear,
+  semester,
+  yearLevel,
+}: EnrolledSubjectsReviewProps) {
   const totalUnits = subjects.reduce((sum, s) => sum + (Number(s.units) || 0), 0);
+
+  const formattedYearLevel = yearLevel
+    ? String(yearLevel).toLowerCase().includes("year")
+      ? String(yearLevel)
+      : `Year ${yearLevel}`
+    : null;
+
+  const hasTermInfo = Boolean(academicYear || formattedYearLevel || semester);
 
   const handleUpdate = (index: number, field: keyof EnrolledSubjectItem, value: unknown) => {
     if (!onChangeSubjects || isReadOnly) return;
@@ -74,14 +92,37 @@ export function EnrolledSubjectsReview({ subjects, onChangeSubjects, isReadOnly 
   };
 
   return (
-    <Card className="shadow-xs border-border/80">
-      <CardHeader className="p-4 sm:p-5 pb-3">
+    <Card className="shadow-xs border-border/80 gap-1.5 py-4">
+      <CardHeader className="p-4 sm:p-5 pb-1">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <CardTitle className="text-sm sm:text-base font-bold flex items-center gap-2">
               <BookOpen className="size-4 text-emerald-700" />
               Enrolled Subjects Review ({subjects.length})
             </CardTitle>
+            {hasTermInfo && (
+              <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-muted-foreground mt-1">
+                {academicYear && (
+                  <span>
+                    Academic Year: <span className="font-semibold text-foreground">{academicYear}</span>
+                  </span>
+                )}
+                {academicYear && formattedYearLevel && <span className="text-muted-foreground/50">•</span>}
+                {formattedYearLevel && (
+                  <span>
+                    Year Level: <span className="font-semibold text-foreground">{formattedYearLevel}</span>
+                  </span>
+                )}
+                {(academicYear || formattedYearLevel) && semester && (
+                  <span className="text-muted-foreground/50">•</span>
+                )}
+                {semester && (
+                  <span>
+                    Semester: <span className="font-semibold text-foreground">{semester}</span>
+                  </span>
+                )}
+              </div>
+            )}
             <CardDescription className="text-xs text-muted-foreground mt-0.5">
               Verified course schedule and credit units against frozen curriculum baseline
             </CardDescription>

@@ -55,6 +55,9 @@ export default function ScholarEnrollmentPage() {
     handleSubmit,
     isReadOnly,
     status,
+    academicYear,
+    semester,
+    yearLevel,
   } = useScholarEnrollmentState();
 
   const isDraft = status === "DRAFT";
@@ -162,18 +165,18 @@ export default function ScholarEnrollmentPage() {
                   onClearSoa={handleClearSoa}
                 />
 
-                {/* Progressive Disclosure: OCR Loading Skeleton -> Empty State Guide -> Smooth Animated Review Cards */}
-                {isUploading ? (
+                {/* Progressive Disclosure: Independent Loading States & Non-Destructive Review Cards */}
+                {isUploadingConsolidated ? (
                   <div className="rounded-2xl border border-emerald-200/80 bg-emerald-50/20 p-6 sm:p-7 space-y-4 animate-in fade-in duration-300 shadow-2xs">
                     <div className="flex items-center gap-3">
                       <div className="size-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
                         <Loader2 className="size-5 animate-spin text-emerald-700" />
                       </div>
                       <div>
-                        <h3 className="text-sm font-bold text-navy">Reading Documents & Checking Requirements...</h3>
+                        <h3 className="text-sm font-bold text-navy">Reading Consolidated Enrollment Form...</h3>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          We&apos;re reading your uploaded files to gather your enrolled subjects, units, and tuition
-                          details automatically.
+                          We&apos;re reading your matriculation certificate to gather enrolled subjects, credit units,
+                          and tuition assessment details automatically.
                         </p>
                       </div>
                     </div>
@@ -182,7 +185,7 @@ export default function ScholarEnrollmentPage() {
                       <Skeleton className="h-28 w-full rounded-xl" />
                     </div>
                   </div>
-                ) : !hasUploadedCredentials ? (
+                ) : !hasUploadedCredentials && !isUploadingCor && !isUploadingSoa ? (
                   <div className="rounded-2xl border border-dashed border-border bg-white/70 p-8 sm:p-10 text-center space-y-3 shadow-2xs animate-in fade-in duration-200">
                     <div className="size-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center mx-auto shadow-2xs">
                       <FileText className="size-6 text-emerald-700" />
@@ -198,19 +201,79 @@ export default function ScholarEnrollmentPage() {
                   </div>
                 ) : (
                   <div className="space-y-6 animate-in fade-in slide-in-from-bottom-3 duration-300">
-                    {/* Enrolled Subjects Review - Read-Only for Scholars */}
-                    <EnrolledSubjectsReview subjects={enrolledSubjects} isReadOnly={true} />
+                    {/* Enrolled Subjects Block: shows loader when uploading COR without hiding anything else */}
+                    {isUploadingCor ? (
+                      <div className="rounded-2xl border border-emerald-200/80 bg-emerald-50/20 p-6 space-y-3 animate-in fade-in duration-200 shadow-2xs">
+                        <div className="flex items-center gap-3">
+                          <div className="size-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
+                            <Loader2 className="size-5 animate-spin text-emerald-700" />
+                          </div>
+                          <div>
+                            <h3 className="text-sm font-bold text-navy">Reading Certificate of Registration (COR)...</h3>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              Extracting enrolled courses, section schedules, and curriculum credit units.
+                            </p>
+                          </div>
+                        </div>
+                        <div className="space-y-2.5 pt-1">
+                          <Skeleton className="h-10 w-full rounded-xl" />
+                          <Skeleton className="h-24 w-full rounded-xl" />
+                        </div>
+                      </div>
+                    ) : enrolledSubjects.length > 0 || !!corFile ? (
+                      <EnrolledSubjectsReview
+                        subjects={enrolledSubjects}
+                        academicYear={academicYear}
+                        semester={semester}
+                        yearLevel={yearLevel}
+                        isReadOnly={true}
+                      />
+                    ) : (
+                      <div className="rounded-2xl border border-dashed border-border bg-white/70 p-6 text-center space-y-1 shadow-2xs">
+                        <h4 className="text-xs font-bold text-navy">Awaiting Certificate of Registration (COR)</h4>
+                        <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                          Upload your proof of enrolled subjects above to view extracted course codes, schedules, and credit units.
+                        </p>
+                      </div>
+                    )}
 
-                    {/* Billing Assessment Summary - Read-Only for Scholars */}
-                    <BillingAssessmentSummary
-                      totalAssessment={totalAssessment}
-                      assessmentDate={assessmentDate}
-                      billingBreakdown={billingBreakdown}
-                      isReadOnly={true}
-                    />
+                    {/* Billing Assessment Block: shows loader when uploading SOA while subjects stay visible */}
+                    {isUploadingSoa ? (
+                      <div className="rounded-2xl border border-emerald-200/80 bg-emerald-50/20 p-6 space-y-3 animate-in fade-in duration-200 shadow-2xs">
+                        <div className="flex items-center gap-3">
+                          <div className="size-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
+                            <Loader2 className="size-5 animate-spin text-emerald-700" />
+                          </div>
+                          <div>
+                            <h3 className="text-sm font-bold text-navy">Reading Statement of Account (SOA)...</h3>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              Extracting tuition fees, assessment breakdown, and balance due automatically.
+                            </p>
+                          </div>
+                        </div>
+                        <div className="space-y-2.5 pt-1">
+                          <Skeleton className="h-10 w-full rounded-xl" />
+                          <Skeleton className="h-20 w-full rounded-xl" />
+                        </div>
+                      </div>
+                    ) : totalAssessment > 0 || !!soaFile || isConsolidated ? (
+                      <BillingAssessmentSummary
+                        totalAssessment={totalAssessment}
+                        assessmentDate={assessmentDate}
+                        billingBreakdown={billingBreakdown}
+                        isReadOnly={true}
+                      />
+                    ) : (
+                      <div className="rounded-2xl border border-dashed border-border bg-white/70 p-6 text-center space-y-1 shadow-2xs">
+                        <h4 className="text-xs font-bold text-navy">Awaiting Statement of Account (SOA)</h4>
+                        <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                          Upload your tuition assessment or student ledger above to review the financial breakdown and balance due.
+                        </p>
+                      </div>
+                    )}
 
-                    {/* Automated Baseline Audit Pre-Check Card & Actions (Hidden if scholar has already submitted) */}
-                    {!hasAlreadySubmitted && (
+                    {/* Automated Baseline Audit Pre-Check Card & Actions (Hidden if scholar has already submitted or still uploading) */}
+                    {!hasAlreadySubmitted && !isUploadingCor && !isUploadingSoa && (
                       <EnrollmentAuditSummaryCard
                         auditResult={auditResult}
                         isSubmitting={isSubmitting}

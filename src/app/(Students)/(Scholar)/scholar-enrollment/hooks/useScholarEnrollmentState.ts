@@ -466,5 +466,15 @@ export function useScholarEnrollmentState() {
     handleSubmit,
     isReadOnly,
     status,
+    academicYear: academicYear || enrollmentState?.enrollment?.academic_year || "",
+    setAcademicYear,
+    semester: semester || enrollmentState?.enrollment?.semester || "",
+    setSemester,
+    yearLevel:
+      yearLevel ||
+      enrollmentState?.enrollment?.year_level ||
+      enrollmentState?.scholar?.current_year_level ||
+      1,
+    setYearLevel,
   };
 }
