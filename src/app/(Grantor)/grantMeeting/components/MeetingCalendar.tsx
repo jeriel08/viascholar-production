@@ -19,7 +19,7 @@ interface MeetingCalendarProps {
   upcoming: UIMeeting[];
   isSelectedToday: boolean;
   onViewAll: () => void;
-  onNewMeeting: () => void;
+  onNewMeeting?: () => void;
   searchQuery: string;
 }
 
@@ -175,10 +175,12 @@ export function MeetingCalendar({
         )}
 
         <div className="flex flex-col gap-2">
-          <Button type="button" className="h-11 w-full text-sm!" onClick={onNewMeeting}>
-            <CalendarPlus className="size-4" />
-            New meeting
-          </Button>
+          {onNewMeeting && (
+            <Button type="button" className="h-11 w-full text-sm!" onClick={onNewMeeting}>
+              <CalendarPlus className="size-4" />
+              New meeting
+            </Button>
+          )}
           {!isSelectedToday && (
             <Button type="button" variant="outline" className="h-10 w-full text-sm!" onClick={onJumpToday}>
               Jump to today

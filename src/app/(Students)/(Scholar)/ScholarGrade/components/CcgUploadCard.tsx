@@ -1,6 +1,7 @@
 "use client";
 
-import { AlertTriangle, Clock, FileText, FileUp, ShieldAlert } from "lucide-react";
+import { AlertTriangle, ArrowRight, Clock, FileText, FileUp, Info, ShieldAlert, XCircle } from "lucide-react";
+import Link from "next/link";
 import type React from "react";
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -18,7 +19,7 @@ import {
   type ScholarDocument,
   uploadDocuments,
 } from "@/lib/api/documents";
-import { getCurrentEnrollment } from "@/lib/api/enrollment";
+import { type CurrentEnrollmentState, getCurrentEnrollment } from "@/lib/api/enrollment";
 import { CcgCardSkeleton } from "./CcgCardSkeleton";
 import { CcgFileDropzone } from "./CcgFileDropzone";
 import { CcgGradeReviewTable } from "./CcgGradeReviewTable";
@@ -53,6 +54,8 @@ export function CcgUploadCard({ onSuccess, latestReport, onOpenAppeal }: CcgUplo
   const [academicYear, setAcademicYear] = useState("2025-2026");
   const [semester, setSemester] = useState("2nd Semester");
   const [enrollmentDetected, setEnrollmentDetected] = useState<string | null>(null);
+  const [enrollmentState, setEnrollmentState] = useState<CurrentEnrollmentState | null>(null);
+  const [enrollmentLoading, setEnrollmentLoading] = useState(true);
 
   const [initialLoading, setInitialLoading] = useState(true);
   const [file, setFile] = useState<File | null>(null);
@@ -68,24 +71,29 @@ export function CcgUploadCard({ onSuccess, latestReport, onOpenAppeal }: CcgUplo
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // 1. Fetch current/submitted term enrollment for default AY & Semester
-  useEffect(() => {
-    async function loadActiveEnrollment() {
-      try {
-        const state = await getCurrentEnrollment();
-        const active = state.enrollment || state.completed_previous_enrollment;
-        if (active?.academic_year || active?.semester) {
-          const ay = normalizeAy(active.academic_year);
-          const sem = normalizeSem(active.semester);
-          setAcademicYear(ay);
-          setSemester(sem);
-          setEnrollmentDetected(`${ay} • ${sem}`);
-        }
-      } catch (err) {
-        console.error("Failed to load active term enrollment:", err);
+  const loadActiveEnrollment = useCallback(async () => {
+    try {
+      setEnrollmentLoading(true);
+      const state = await getCurrentEnrollment();
+      setEnrollmentState(state);
+      const active = state.enrollment || state.completed_previous_enrollment;
+      if (active?.academic_year || active?.semester) {
+        const ay = normalizeAy(active.academic_year);
+        const sem = normalizeSem(active.semester);
+        setAcademicYear(ay);
+        setSemester(sem);
+        setEnrollmentDetected(`${ay} • ${sem}`);
       }
+    } catch (err) {
+      console.error("Failed to load active term enrollment:", err);
+    } finally {
+      setEnrollmentLoading(false);
     }
-    loadActiveEnrollment();
   }, []);
+
+  useEffect(() => {
+    loadActiveEnrollment();
+  }, [loadActiveEnrollment]);
 
   const parseExtractedPayload = useCallback((extracted: Record<string, unknown> | null | undefined) => {
     if (!extracted) return;
@@ -124,9 +132,22 @@ export function CcgUploadCard({ onSuccess, latestReport, onOpenAppeal }: CcgUplo
   // 2. Fetch initial draft / pending CCG document
   const fetchActiveDraft = useCallback(async () => {
     try {
-      const docs = await getMyDocuments();
-      const unverified = docs.find((d) =>
-        ["PENDING", "PASSED_PRECHECK", "STUDENT_CONFIRMED", "NEEDS_REUPLOAD"].includes(d.status),
+      const docs = await getMyDocuments("CCG");
+      const isCcgDoc = (type?: string) => {
+        if (!type) return false;
+        const normalized = type.toUpperCase().replace(/[\s_-]+/g, "");
+        return (
+          normalized === "CCG" ||
+          normalized === "CERTIFIEDCOPYOFGRADES" ||
+          normalized === "GRADEREPORT" ||
+          normalized === "GRADES"
+        );
+      };
+
+      const unverified = docs.find(
+        (d) =>
+          isCcgDoc(d.document_type) &&
+          ["PENDING", "PASSED_PRECHECK", "STUDENT_CONFIRMED", "NEEDS_REUPLOAD"].includes(d.status),
       );
 
       if (unverified) {
@@ -141,6 +162,8 @@ export function CcgUploadCard({ onSuccess, latestReport, onOpenAppeal }: CcgUplo
         }
       } else {
         setDoc(null);
+        setGradeItems([]);
+        setGeneralAvg(undefined);
         setAnalyzingOcr(false);
       }
     } catch (err) {
@@ -235,22 +258,48 @@ export function CcgUploadCard({ onSuccess, latestReport, onOpenAppeal }: CcgUplo
       }
     };
 
+    const handleEnrollmentSync = () => {
+      loadActiveEnrollment();
+    };
+
     socket.on("document:ocr_completed", handleOcrFinished);
     socket.on("document:verified", handleDocumentVerified);
     socket.on("document:changes_requested", handleDocumentChangesRequested);
+    socket.on("enrollment:approved", handleEnrollmentSync);
+    socket.on("enrollment:changes_requested", handleEnrollmentSync);
+    socket.on("enrollment:rejected", handleEnrollmentSync);
+    socket.on("enrollment:submitted_for_review", handleEnrollmentSync);
 
     return () => {
       socket.off("document:ocr_completed", handleOcrFinished);
       socket.off("document:verified", handleDocumentVerified);
       socket.off("document:changes_requested", handleDocumentChangesRequested);
+      socket.off("enrollment:approved", handleEnrollmentSync);
+      socket.off("enrollment:changes_requested", handleEnrollmentSync);
+      socket.off("enrollment:rejected", handleEnrollmentSync);
+      socket.off("enrollment:submitted_for_review", handleEnrollmentSync);
     };
-  }, [socket, doc, parseExtractedPayload, fetchActiveDraft, onSuccess]);
+  }, [socket, doc, parseExtractedPayload, fetchActiveDraft, onSuccess, loadActiveEnrollment]);
+
+  const currentEnrollment = enrollmentState?.enrollment;
+  const enrollmentStatus = currentEnrollment?.status;
+  const isEnrollmentApproved = enrollmentStatus === "APPROVED";
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) setFile(e.target.files[0]);
   };
 
   const handleUploadAndParse = async () => {
+    if (!isEnrollmentApproved) {
+      if (!currentEnrollment) {
+        toast.error("Please complete your start-of-term enrollment on the Enrollment page first.");
+      } else if (enrollmentStatus === "PENDING_REVIEW") {
+        toast.error("Your start-of-term enrollment is currently pending coordinator approval.");
+      } else {
+        toast.error("You cannot upload grades until your start-of-term enrollment is approved.");
+      }
+      return;
+    }
     if (!file) {
       toast.error("Please select a Certified Copy of Grades (CCG) file.");
       return;
@@ -287,6 +336,10 @@ export function CcgUploadCard({ onSuccess, latestReport, onOpenAppeal }: CcgUplo
   };
 
   const handleConfirmAndSubmit = async () => {
+    if (!isEnrollmentApproved) {
+      toast.error("You cannot submit grades without an approved start-of-term enrollment.");
+      return;
+    }
     if (!doc) return;
     try {
       setConfirming(true);
@@ -325,7 +378,7 @@ export function CcgUploadCard({ onSuccess, latestReport, onOpenAppeal }: CcgUplo
     return unitsTotal > 0 ? (sum / unitsTotal).toFixed(2) : "0.00";
   };
 
-  if (initialLoading) {
+  if (initialLoading || enrollmentLoading) {
     return (
       <Card className="rounded-[18px]! border-line bg-white shadow-va-sm">
         <CardContent className="p-5 md:p-6">
@@ -348,22 +401,51 @@ export function CcgUploadCard({ onSuccess, latestReport, onOpenAppeal }: CcgUplo
               Upload your official registrar grade slip to record course credits and verify scholarship renewal.
             </p>
           </div>
-          {doc && (
+          {doc?.status === "STUDENT_CONFIRMED" ? (
+            <Badge
+              variant="outline"
+              className="bg-amber-50 text-amber-800 border-amber-300 text-xs font-bold"
+            >
+              Submission #{doc.document_id} Under Audit
+            </Badge>
+          ) : !isEnrollmentApproved ? (
             <Badge
               variant="outline"
               className={
-                doc.status === "STUDENT_CONFIRMED"
+                enrollmentStatus === "PENDING_REVIEW"
                   ? "bg-amber-50 text-amber-800 border-amber-300 text-xs font-bold"
-                  : doc.status === "NEEDS_REUPLOAD"
+                  : enrollmentStatus === "CHANGES_REQUESTED" || enrollmentStatus === "REJECTED"
                     ? "bg-rose-50 text-rose-800 border-rose-300 text-xs font-bold"
-                    : "bg-[#0a4f42]/10 text-[#0a4f42] border-[#0a4f42]/30 text-xs font-bold"
+                    : "bg-stone-100 text-stone-700 border-stone-300 text-xs font-bold"
               }
             >
-              {doc.status === "STUDENT_CONFIRMED"
-                ? `Submission #${doc.document_id} Under Audit`
-                : doc.status === "NEEDS_REUPLOAD"
-                  ? `Correction Requested on #${doc.document_id}`
-                  : `Draft #${doc.document_id} Loaded`}
+              {enrollmentStatus === "PENDING_REVIEW"
+                ? "Enrollment Pending Review"
+                : enrollmentStatus === "CHANGES_REQUESTED"
+                  ? "Enrollment Changes Needed"
+                  : enrollmentStatus === "REJECTED"
+                    ? "Enrollment Disapproved"
+                    : "Enrollment Required"}
+            </Badge>
+          ) : doc ? (
+            <Badge
+              variant="outline"
+              className={
+                doc.status === "NEEDS_REUPLOAD"
+                  ? "bg-rose-50 text-rose-800 border-rose-300 text-xs font-bold"
+                  : "bg-[#0a4f42]/10 text-[#0a4f42] border-[#0a4f42]/30 text-xs font-bold"
+              }
+            >
+              {doc.status === "NEEDS_REUPLOAD"
+                ? `Correction Requested on #${doc.document_id}`
+                : `Draft #${doc.document_id} Loaded`}
+            </Badge>
+          ) : (
+            <Badge
+              variant="outline"
+              className="bg-emerald-50 text-[#0a4f42] border-[#0a4f42]/30 text-xs font-bold"
+            >
+              Enrollment Verified
             </Badge>
           )}
         </div>
@@ -426,6 +508,283 @@ export function CcgUploadCard({ onSuccess, latestReport, onOpenAppeal }: CcgUplo
                     </Button>
                   </div>
                 )}
+              </div>
+            );
+          }
+
+          // Enrollment Lock: Scholar must have an approved start-of-term enrollment
+          // before they are allowed to upload grades or review unconfirmed drafts
+          if (!isEnrollmentApproved && (!doc || doc.status !== "STUDENT_CONFIRMED")) {
+            if (enrollmentStatus === "PENDING_REVIEW") {
+              return (
+                <div className="rounded-2xl border border-amber-200/90 bg-linear-to-br from-amber-50/70 via-white to-orange-50/30 p-5 md:p-6 space-y-5">
+                  <div className="flex items-start gap-4">
+                    <div className="size-11 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0 mt-0.5">
+                      <Clock className="size-5.5 animate-pulse text-amber-700" />
+                    </div>
+                    <div className="space-y-1.5 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h4 className="text-sm md:text-base font-bold text-navy">
+                          Grade Submission Locked • Term Enrollment Pending Approval
+                        </h4>
+                        <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-300 text-[10px] font-bold">
+                          Coordinator Review in Progress
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-stone-600 leading-relaxed">
+                        Your start-of-term Certificate of Registration (COR) and course load are currently being audited by your scholarship coordinator. Grade slip submissions will unlock automatically once your enrolled courses and units are verified and approved.
+                      </p>
+                    </div>
+                  </div>
+
+                  {currentEnrollment && (
+                    <div className="rounded-xl border border-amber-200/60 bg-white/80 p-3.5 text-xs grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div>
+                        <span className="text-[11px] text-stone-500 font-medium block">Submitted Term</span>
+                        <span className="font-bold text-navy">
+                          {currentEnrollment.academic_year || "Current AY"} • {currentEnrollment.semester || "Semester"}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[11px] text-stone-500 font-medium block">Enrolled Course Load</span>
+                        <span className="font-bold text-navy">
+                          {currentEnrollment.total_units ? `${Number(currentEnrollment.total_units)} Credit Units` : "Under Review"}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[11px] text-stone-500 font-medium block">Submission Date</span>
+                        <span className="font-bold text-navy">
+                          {currentEnrollment.created_at
+                            ? new Date(currentEnrollment.created_at).toLocaleDateString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                              })
+                            : "Recently"}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="rounded-xl bg-amber-50/60 border border-amber-200/70 p-3 text-xs text-amber-900 flex items-start gap-2.5">
+                    <Info className="size-4 text-amber-700 shrink-0 mt-0.5" />
+                    <span className="leading-relaxed">
+                      <strong>Why is this locked?</strong> The scholarship system verifies each grade against your approved enrolled subjects and credit units. Grade slip evaluation cannot begin without an approved baseline.
+                    </span>
+                  </div>
+
+                  <div className="pt-2 border-t border-amber-200/60 flex items-center justify-between gap-3">
+                    <span className="text-xs text-stone-500 hidden sm:inline">
+                      Check your enrollment details or track approval status anytime.
+                    </span>
+                    <div className="flex items-center gap-2 ml-auto">
+                      {doc && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={handleDiscardDraft}
+                          disabled={discarding}
+                          className="h-9 rounded-xl text-stone-500 hover:text-stone-800 text-xs font-semibold px-3 cursor-pointer"
+                        >
+                          Discard Unsaved Draft
+                        </Button>
+                      )}
+                      <Link href="/scholar-enrollment">
+                        <Button
+                          type="button"
+                          className="h-9 rounded-xl bg-[#0a4f42] hover:bg-[#0a4f42]/90 text-white text-xs font-bold px-4 gap-2 shadow-xs cursor-pointer"
+                        >
+                          <span>View Enrollment Status</span>
+                          <ArrowRight className="size-3.5" />
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
+            if (enrollmentStatus === "CHANGES_REQUESTED") {
+              return (
+                <div className="rounded-2xl border border-rose-200/90 bg-linear-to-br from-rose-50/70 via-white to-amber-50/30 p-5 md:p-6 space-y-5">
+                  <div className="flex items-start gap-4">
+                    <div className="size-11 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0 mt-0.5">
+                      <AlertTriangle className="size-5.5 text-rose-700" />
+                    </div>
+                    <div className="space-y-1.5 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h4 className="text-sm md:text-base font-bold text-navy">
+                          Grade Submission Locked • Enrollment Adjustments Required
+                        </h4>
+                        <Badge variant="outline" className="bg-rose-100 text-rose-800 border-rose-300 text-[10px] font-bold">
+                          Action Required
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-stone-600 leading-relaxed">
+                        Your scholarship coordinator reviewed your enrollment documents and requested changes or re-upload. Please review the coordinator feedback and resubmit your enrollment to clear your course load baseline.
+                      </p>
+                    </div>
+                  </div>
+
+                  {currentEnrollment?.coordinator_notes && (
+                    <div className="rounded-xl border border-rose-200 bg-rose-50/60 p-3.5 text-xs text-rose-900">
+                      <span className="font-bold block mb-1">Coordinator Feedback:</span>
+                      <p className="italic">{currentEnrollment.coordinator_notes}</p>
+                    </div>
+                  )}
+
+                  <div className="pt-2 border-t border-rose-200/60 flex items-center justify-between gap-3">
+                    <span className="text-xs text-stone-500 hidden sm:inline">
+                      Update your enrollment documents to continue.
+                    </span>
+                    <div className="flex items-center gap-2 ml-auto">
+                      {doc && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={handleDiscardDraft}
+                          disabled={discarding}
+                          className="h-9 rounded-xl text-stone-500 hover:text-stone-800 text-xs font-semibold px-3 cursor-pointer"
+                        >
+                          Discard Unsaved Draft
+                        </Button>
+                      )}
+                      <Link href="/scholar-enrollment">
+                        <Button
+                          type="button"
+                          className="h-9 rounded-xl bg-rose-700 hover:bg-rose-800 text-white text-xs font-bold px-4 gap-2 shadow-xs cursor-pointer"
+                        >
+                          <span>Resolve Enrollment Remarks</span>
+                          <ArrowRight className="size-3.5" />
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
+            if (enrollmentStatus === "REJECTED") {
+              return (
+                <div className="rounded-2xl border border-rose-200/90 bg-linear-to-br from-rose-50/70 via-white to-stone-50/30 p-5 md:p-6 space-y-5">
+                  <div className="flex items-start gap-4">
+                    <div className="size-11 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0 mt-0.5">
+                      <XCircle className="size-5.5 text-rose-700" />
+                    </div>
+                    <div className="space-y-1.5 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h4 className="text-sm md:text-base font-bold text-navy">
+                          Grade Submission Locked • Term Enrollment Disapproved
+                        </h4>
+                        <Badge variant="outline" className="bg-rose-100 text-rose-800 border-rose-300 text-[10px] font-bold">
+                          Disapproved
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-stone-600 leading-relaxed">
+                        Your start-of-term enrollment was not approved by your scholarship coordinator. Grade slips cannot be accepted without an approved course list.
+                      </p>
+                    </div>
+                  </div>
+
+                  {currentEnrollment?.coordinator_notes && (
+                    <div className="rounded-xl border border-rose-200 bg-rose-50/60 p-3.5 text-xs text-rose-900">
+                      <span className="font-bold block mb-1">Coordinator Note:</span>
+                      <p className="italic">{currentEnrollment.coordinator_notes}</p>
+                    </div>
+                  )}
+
+                  <div className="pt-2 border-t border-rose-200/60 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 ml-auto">
+                      {doc && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={handleDiscardDraft}
+                          disabled={discarding}
+                          className="h-9 rounded-xl text-stone-500 hover:text-stone-800 text-xs font-semibold px-3 cursor-pointer"
+                        >
+                          Discard Unsaved Draft
+                        </Button>
+                      )}
+                      <Link href="/scholar-enrollment">
+                        <Button
+                          type="button"
+                          className="h-9 rounded-xl bg-rose-700 hover:bg-rose-800 text-white text-xs font-bold px-4 gap-2 shadow-xs cursor-pointer"
+                        >
+                          <span>View Enrollment Remarks</span>
+                          <ArrowRight className="size-3.5" />
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
+            // Default: Not submitted yet (no enrollment or DRAFT / NOT_SUBMITTED)
+            return (
+              <div className="rounded-2xl border border-stone-200/90 bg-linear-to-br from-stone-50/70 via-white to-amber-50/30 p-5 md:p-6 space-y-5">
+                <div className="flex items-start gap-4">
+                  <div className="size-11 rounded-xl bg-stone-100 text-stone-700 flex items-center justify-center shrink-0 mt-0.5">
+                    <FileText className="size-5.5 text-stone-700" />
+                  </div>
+                  <div className="space-y-1.5 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h4 className="text-sm md:text-base font-bold text-navy">
+                        Grade Submission Locked • Start-of-Term Enrollment Required
+                      </h4>
+                      <Badge variant="outline" className="bg-stone-100 text-stone-700 border-stone-300 text-[10px] font-bold">
+                        Enrollment Not Submitted
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-stone-600 leading-relaxed">
+                      You have not submitted your official Certificate of Registration (COR) and course load for this academic term yet. The scholarship system requires an approved subject baseline before end-of-term grades can be recorded and evaluated.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-stone-200 bg-white/90 p-4 space-y-2 text-xs">
+                  <span className="font-bold text-navy block text-xs">Next Steps to Unlock Grade Submission:</span>
+                  <ol className="list-decimal list-inside space-y-1.5 text-stone-600 leading-relaxed">
+                    <li>
+                      Navigate to the <strong>Term Enrollment</strong> page.
+                    </li>
+                    <li>
+                      Upload your <strong>Certificate of Registration (COR)</strong> and <strong>Statement of Account (SOA)</strong>.
+                    </li>
+                    <li>
+                      Submit your enrolled subjects for coordinator audit. Once approved, grade slip uploads will unlock automatically here.
+                    </li>
+                  </ol>
+                </div>
+
+                <div className="pt-2 border-t border-stone-200 flex items-center justify-between gap-3">
+                  <span className="text-xs text-stone-500 hidden sm:inline">
+                    Submit your registration documents at the start of each semester.
+                  </span>
+                  <div className="flex items-center gap-2 ml-auto">
+                    {doc && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={handleDiscardDraft}
+                        disabled={discarding}
+                        className="h-9 rounded-xl text-stone-500 hover:text-stone-800 text-xs font-semibold px-3 cursor-pointer"
+                      >
+                        Discard Unsaved Draft
+                      </Button>
+                    )}
+                    <Link href="/scholar-enrollment">
+                      <Button
+                        type="button"
+                        className="h-9 rounded-xl bg-[#0a4f42] hover:bg-[#0a4f42]/90 text-white text-xs font-bold px-4 gap-2 shadow-xs cursor-pointer"
+                      >
+                        <span>Go to Term Enrollment</span>
+                        <ArrowRight className="size-3.5" />
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
               </div>
             );
           }

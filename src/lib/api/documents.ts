@@ -131,8 +131,9 @@ export function deleteDocument(id: number) {
   return apiDelete<{ success: boolean; message: string }>(`${B}/${id}`);
 }
 
-export function getMyDocuments() {
-  return apiGet<ScholarDocument[]>(`${B}/me`);
+export function getMyDocuments(documentType?: string) {
+  const query = documentType ? `?document_type=${encodeURIComponent(documentType)}` : "";
+  return apiGet<ScholarDocument[]>(`${B}/me${query}`);
 }
 
 export function getGradeReportsMe() {

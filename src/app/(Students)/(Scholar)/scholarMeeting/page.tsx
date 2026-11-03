@@ -6,14 +6,11 @@ import { DayTimeline } from "@/app/(Grantor)/grantMeeting/components/DayTimeline
 import { dateKey } from "@/app/(Grantor)/grantMeeting/components/date-utils";
 import { MeetingCalendar } from "@/app/(Grantor)/grantMeeting/components/MeetingCalendar";
 import type { UIMeeting } from "@/app/(Grantor)/grantMeeting/components/meeting-types";
-import { ScheduleMeetingDialog } from "@/app/(Grantor)/grantMeeting/components/ScheduleMeetingDialog";
 import { useMeetings } from "@/app/(Grantor)/grantMeeting/components/useMeetings";
 import { PageHeader } from "@/components/PageHeader";
 
 export default function ScholarMeetingPage() {
   const m = useMeetings();
-  const [scheduleOpen, setScheduleOpen] = useState(false);
-  const [rescheduleTarget, setRescheduleTarget] = useState<UIMeeting | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
 
   function handleSelectDate(key: string) {
@@ -29,15 +26,11 @@ export default function ScholarMeetingPage() {
     setSheetOpen(false);
   }
 
-  function handleMeetingChanged() {
-    void m.refresh();
-  }
-
   return (
     <div className="flex min-h-full flex-col">
       <PageHeader
         title="Meetings"
-        subtitle="Book a meeting or check what's been scheduled for you."
+        subtitle="Check your scheduled interviews and meetings with your coordinator or grantor."
         searchValue={m.search}
         onSearchChange={m.setSearch}
         searchPlaceholder="Search meetings..."
@@ -53,9 +46,6 @@ export default function ScholarMeetingPage() {
             loadError={m.loadError}
             onRetry={() => void m.refresh()}
             searchQuery={m.search.trim()}
-            onBook={() => setScheduleOpen(true)}
-            onReschedule={setRescheduleTarget}
-            onCancelled={() => void m.refresh()}
             onJumpToday={m.jumpToToday}
           />
           <MeetingCalendar
@@ -70,32 +60,10 @@ export default function ScholarMeetingPage() {
             upcoming={m.upcomingMeetings}
             isSelectedToday={m.isSelectedToday}
             onViewAll={() => setSheetOpen(true)}
-            onNewMeeting={() => setScheduleOpen(true)}
             searchQuery={m.search.trim()}
           />
         </div>
       </div>
-
-      <ScheduleMeetingDialog
-        applicationId={null}
-        open={scheduleOpen}
-        onOpenChange={setScheduleOpen}
-        mode="schedule"
-        onSuccess={handleMeetingChanged}
-      />
-      <ScheduleMeetingDialog
-        applicationId={rescheduleTarget?.applicationId ?? null}
-        applicantName={rescheduleTarget?.applicantName}
-        open={rescheduleTarget !== null}
-        onOpenChange={(open) => {
-          if (!open) setRescheduleTarget(null);
-        }}
-        mode="reschedule"
-        onSuccess={() => {
-          setRescheduleTarget(null);
-          handleMeetingChanged();
-        }}
-      />
 
       <AllMeetingsSheet
         open={sheetOpen}

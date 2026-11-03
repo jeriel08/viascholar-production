@@ -20,9 +20,9 @@ interface DayTimelineProps {
   loadError: string | null;
   onRetry: () => void;
   searchQuery: string;
-  onBook: () => void;
-  onReschedule: (meeting: UIMeeting) => void;
-  onCancelled: () => void;
+  onBook?: () => void;
+  onReschedule?: (meeting: UIMeeting) => void;
+  onCancelled?: () => void;
   onJumpToday: () => void;
 }
 
@@ -87,7 +87,7 @@ export function DayTimeline({
       await cancelInterview(m.applicationId, { reason: cancelReason.trim() || undefined });
       setCancellingId(null);
       setCancelReason("");
-      onCancelled();
+      onCancelled?.();
     } catch (err) {
       setCancelError(err instanceof ApiError ? err.message : "Could not cancel the meeting. Please try again.");
     } finally {
@@ -144,7 +144,7 @@ export function DayTimeline({
             <p className="text-sm text-muted-foreground">
               {searchQuery ? "No matching meetings on this day." : "No meetings scheduled for this day."}
             </p>
-            {!searchQuery && (
+            {!searchQuery && onBook && (
               <Button type="button" className="mt-2 h-11 px-5 text-sm!" onClick={onBook}>
                 <CalendarDays className="size-4" />
                 Book a meeting
@@ -275,30 +275,34 @@ export function DayTimeline({
                             Join
                           </Button>
                         )}
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="h-8 bg-white text-xs!"
-                          onClick={() => onReschedule(m)}
-                        >
-                          Reschedule
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 text-xs text-destructive hover:text-destructive!"
-                          disabled={m.applicationId == null}
-                          title={m.applicationId == null ? "No linked application" : "Cancel meeting"}
-                          onClick={() => {
-                            setCancellingId(m.id);
-                            setCancelReason("");
-                            setCancelError(null);
-                          }}
-                        >
-                          Cancel
-                        </Button>
+                        {onReschedule && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-8 bg-white text-xs!"
+                            onClick={() => onReschedule(m)}
+                          >
+                            Reschedule
+                          </Button>
+                        )}
+                        {onCancelled && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 text-xs text-destructive hover:text-destructive!"
+                            disabled={m.applicationId == null}
+                            title={m.applicationId == null ? "No linked application" : "Cancel meeting"}
+                            onClick={() => {
+                              setCancellingId(m.id);
+                              setCancelReason("");
+                              setCancelError(null);
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                        )}
                       </div>
                     )}
                   </div>
