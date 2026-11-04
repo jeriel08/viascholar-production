@@ -202,7 +202,15 @@ export function BaselineAuditDrawer({ scholarProfileId, open, onOpenChange, onSu
   const isFrozen = data?.prospectus?.is_frozen || false;
   const school = data?.school_grading_system as SchoolGradingSystem | null;
   const scholar = data?.scholar_profile;
-  const fileUrl = currentDoc?.file_url;
+  const rawFileUrl = currentDoc?.file_url;
+  const isFileUrlValid = Boolean(
+    rawFileUrl &&
+      (rawFileUrl.startsWith("http://") ||
+        rawFileUrl.startsWith("https://") ||
+        rawFileUrl.startsWith("blob:") ||
+        rawFileUrl.startsWith("data:"))
+  );
+  const fileUrl = isFileUrlValid ? rawFileUrl : null;
 
   const totalUnits = subjectsList.reduce((acc, s) => acc + (Number(s.units) || 0), 0);
   const creditedUnits = subjectsList
@@ -317,8 +325,8 @@ export function BaselineAuditDrawer({ scholarProfileId, open, onOpenChange, onSu
               )}
 
               <div className="flex-1 p-2 bg-slate-950 flex items-center justify-center overflow-auto relative">
-                {currentDoc ? (
-                  currentDoc.file_type?.includes("pdf") || currentDoc.file_url.endsWith(".pdf") ? (
+                {currentDoc && fileUrl ? (
+                  currentDoc.file_type?.includes("pdf") || fileUrl.endsWith(".pdf") ? (
                     <iframe
                       src={`${fileUrl}#toolbar=0`}
                       className="w-full h-full rounded-md border-0"
@@ -326,7 +334,7 @@ export function BaselineAuditDrawer({ scholarProfileId, open, onOpenChange, onSu
                     />
                   ) : (
                     <Image
-                      src={currentDoc.file_url}
+                      src={fileUrl}
                       alt="Document preview"
                       fill
                       unoptimized
@@ -334,7 +342,9 @@ export function BaselineAuditDrawer({ scholarProfileId, open, onOpenChange, onSu
                     />
                   )
                 ) : (
-                  <p className="text-xs text-slate-500">No document file uploaded.</p>
+                  <p className="text-xs text-slate-500">
+                    {currentDoc ? "Document preview unavailable (file URL not found or inaccessible)." : "No document file uploaded."}
+                  </p>
                 )}
               </div>
             </div>

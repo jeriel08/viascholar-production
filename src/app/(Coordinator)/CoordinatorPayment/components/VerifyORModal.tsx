@@ -27,7 +27,15 @@ export function VerifyORModal({ disbursement, open, onClose, onSuccess }: Verify
   if (!open || !disbursement) return null;
 
   const scholarName = `${disbursement.scholar_profile?.first_name || ""} ${disbursement.scholar_profile?.last_name || ""}`;
-  const orUrl = disbursement.or_document?.file_url;
+  const rawOrUrl = disbursement.or_document?.file_url;
+  const isOrUrlValid = Boolean(
+    rawOrUrl &&
+      (rawOrUrl.startsWith("http://") ||
+        rawOrUrl.startsWith("https://") ||
+        rawOrUrl.startsWith("blob:") ||
+        rawOrUrl.startsWith("data:"))
+  );
+  const orUrl = isOrUrlValid ? rawOrUrl : null;
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(val || 0);
@@ -117,7 +125,9 @@ export function VerifyORModal({ disbursement, open, onClose, onSuccess }: Verify
                 </a>
               </div>
             ) : (
-              <div className="text-center p-8 text-muted-foreground text-xs">No receipt document uploaded yet.</div>
+              <div className="text-center p-8 text-muted-foreground text-xs">
+                {rawOrUrl ? "Document preview unavailable (file URL not found or inaccessible)." : "No receipt document uploaded yet."}
+              </div>
             )}
           </div>
 

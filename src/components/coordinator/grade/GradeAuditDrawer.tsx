@@ -208,7 +208,15 @@ export function GradeAuditDrawer({ documentId, open, onClose, onReviewed }: Grad
     }
   };
 
-  const fileUrl = doc?.file_url;
+  const rawFileUrl = doc?.file_url;
+  const isFileUrlValid = Boolean(
+    rawFileUrl &&
+      (rawFileUrl.startsWith("http://") ||
+        rawFileUrl.startsWith("https://") ||
+        rawFileUrl.startsWith("blob:") ||
+        rawFileUrl.startsWith("data:"))
+  );
+  const fileUrl = isFileUrlValid ? rawFileUrl : null;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex justify-end transition-opacity">
@@ -276,7 +284,9 @@ export function GradeAuditDrawer({ documentId, open, onClose, onReviewed }: Grad
                     <Image src={fileUrl} alt="Uploaded CCG" fill unoptimized className="object-contain rounded-md" />
                   )
                 ) : (
-                  <p className="text-xs text-slate-500">No document preview available.</p>
+                  <p className="text-xs text-slate-500">
+                    {rawFileUrl ? "Document preview unavailable (file URL not found or inaccessible)." : "No document preview available."}
+                  </p>
                 )}
               </div>
             </div>

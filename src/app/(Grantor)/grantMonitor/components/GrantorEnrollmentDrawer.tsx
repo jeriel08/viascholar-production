@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, Clock, ExternalLink, Loader2, X } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock, ExternalLink, Loader2, X } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -68,7 +68,23 @@ export function GrantorEnrollmentDrawer({ enrollmentId, open, onClose, onReviewe
     return new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(val || 0);
   };
 
-  const activeDocUrl = activeDocTab === "COR" ? enrollment?.cor_document?.file_url : enrollment?.soa_document?.file_url;
+  const activeDoc = activeDocTab === "COR" ? enrollment?.cor_document : enrollment?.soa_document;
+  const rawDocUrl =
+    activeDoc?.file_url ||
+    (enrollment?.is_consolidated
+      ? activeDocTab === "COR"
+        ? enrollment?.soa_document?.file_url
+        : enrollment?.cor_document?.file_url
+      : undefined);
+
+  const isValidDocUrl = Boolean(
+    rawDocUrl &&
+      (rawDocUrl.startsWith("http://") ||
+        rawDocUrl.startsWith("https://") ||
+        rawDocUrl.startsWith("blob:") ||
+        rawDocUrl.startsWith("data:"))
+  );
+  const activeDocUrl = isValidDocUrl ? rawDocUrl : null;
   const isEndorsed = enrollment?.status === "APPROVED";
 
   return (
@@ -159,7 +175,17 @@ export function GrantorEnrollmentDrawer({ enrollmentId, open, onClose, onReviewe
                     />
                   )
                 ) : (
-                  <p className="text-xs text-slate-500">No document attached.</p>
+                  <div className="flex flex-col items-center justify-center p-6 text-center space-y-2">
+                    <AlertTriangle className="size-8 text-amber-400/80" />
+                    <p className="text-sm font-semibold text-slate-300">
+                      {rawDocUrl ? "Document preview unavailable" : "No document attached"}
+                    </p>
+                    <p className="text-xs text-slate-500 max-w-xs">
+                      {rawDocUrl
+                        ? "The document link is invalid or could not be found on storage."
+                        : "The scholar has not submitted a document for this section yet."}
+                    </p>
+                  </div>
                 )}
               </div>
             </div>

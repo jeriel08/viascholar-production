@@ -26,7 +26,15 @@ export function GrantorAppealDrawer({ report, open, onClose, onReviewed }: Grant
   if (!open || !report) return null;
 
   const scholar = report.scholar_profile;
-  const appealDocUrl = report.appeal_document?.file_url;
+  const rawAppealDocUrl = report.appeal_document?.file_url;
+  const isAppealDocUrlValid = Boolean(
+    rawAppealDocUrl &&
+      (rawAppealDocUrl.startsWith("http://") ||
+        rawAppealDocUrl.startsWith("https://") ||
+        rawAppealDocUrl.startsWith("blob:") ||
+        rawAppealDocUrl.startsWith("data:"))
+  );
+  const appealDocUrl = isAppealDocUrlValid ? rawAppealDocUrl : null;
   const isPending = report.appeal_status === "PENDING_GRANTOR";
 
   const handleDecision = async (decision: "APPROVED" | "DENIED") => {
