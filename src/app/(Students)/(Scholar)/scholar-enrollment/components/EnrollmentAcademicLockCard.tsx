@@ -16,36 +16,73 @@ export function EnrollmentAcademicLockCard({ lock }: EnrollmentAcademicLockCardP
   const isDiscontinued = lock.reason === "DISCONTINUED" || lock.appeal_status === "DENIED";
 
   return (
-    <Card className="rounded-2xl border border-amber-200/90 bg-linear-to-br from-amber-50/60 via-white to-orange-50/30 p-6 md:p-8 shadow-sm">
-      <CardContent className="p-0 space-y-6">
+    <Card
+      className={`shadow-xs ${
+        isDiscontinued
+          ? "border-rose-200/80 bg-rose-50/20"
+          : isPending
+            ? "border-amber-200/80 bg-amber-50/20"
+            : "border-rose-200/80 bg-rose-50/20"
+      }`}
+    >
+      <CardContent className="p-4 sm:p-5 space-y-4">
         {/* Header with status badge */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-amber-200/60 pb-5">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-start sm:items-center gap-3.5">
             <div
-              className={`size-12 rounded-xl flex items-center justify-center shrink-0 ${
+              className={`flex size-10 sm:size-11 shrink-0 items-center justify-center rounded-xl ${
                 isDiscontinued
                   ? "bg-rose-100 text-rose-700"
                   : isPending
                     ? "bg-amber-100 text-amber-800"
-                    : "bg-rose-100 text-rose-800"
+                    : "bg-rose-100 text-rose-700"
               }`}
             >
               {isDiscontinued ? (
-                <ShieldAlert className="size-6" />
+                <ShieldAlert className="size-5 sm:size-6" />
               ) : isPending ? (
-                <Clock className="size-6 animate-pulse" />
+                <Clock className="size-5 sm:size-6 text-amber-700" />
               ) : (
-                <AlertTriangle className="size-6" />
+                <AlertTriangle className="size-5 sm:size-6 text-rose-700" />
               )}
             </div>
             <div>
-              <h2 className="text-lg md:text-xl font-bold text-navy">
-                {isDiscontinued
-                  ? "Start-of-Term Enrollment Unavailable"
-                  : isPending
-                    ? "Enrollment Paused • Appeal Awaiting Grantor Verdict"
-                    : "Enrollment Paused • Academic Appeal Required"}
-              </h2>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-sm sm:text-base font-bold text-navy">
+                  {isDiscontinued
+                    ? "Start-of-Term Enrollment Unavailable"
+                    : isPending
+                      ? "Enrollment Paused • Appeal Awaiting Grantor Verdict"
+                      : "Enrollment Paused • Academic Appeal Required"}
+                </h3>
+                <Badge
+                  variant="outline"
+                  className={
+                    isDiscontinued
+                      ? "bg-rose-100/80 text-rose-900 border-rose-300 text-xs font-bold gap-1 py-0.5"
+                      : isPending
+                        ? "bg-amber-100/80 text-amber-900 border-amber-300 text-xs font-bold gap-1 py-0.5"
+                        : "bg-rose-100/80 text-rose-900 border-rose-300 text-xs font-bold gap-1 py-0.5"
+                  }
+                >
+                  {isDiscontinued ? (
+                    <>
+                      <ShieldAlert className="size-3 text-rose-700" />
+                      Scholarship Concluded
+                    </>
+                  ) : isPending ? (
+                    <>
+                      <Clock className="size-3 text-amber-700" />
+                      Appeal Under Review
+                    </>
+                  ) : (
+                    <>
+                      <AlertTriangle className="size-3 text-rose-700" />
+                      Action Required
+                    </>
+                  )}
+                </Badge>
+              </div>
               <p className="text-xs text-muted-foreground mt-0.5">
                 {isDiscontinued
                   ? "Your scholarship agreement has concluded following an appeal decision."
@@ -55,51 +92,32 @@ export function EnrollmentAcademicLockCard({ lock }: EnrollmentAcademicLockCardP
               </p>
             </div>
           </div>
-
-          <div>
-            {isDiscontinued ? (
-              <Badge className="bg-rose-100 text-rose-900 border-rose-300 text-xs font-semibold gap-1.5 py-1 px-3">
-                <ShieldAlert className="size-3.5 text-rose-700" />
-                Scholarship Discontinued
-              </Badge>
-            ) : isPending ? (
-              <Badge className="bg-amber-100 text-amber-900 border-amber-300 text-xs font-semibold gap-1.5 py-1 px-3">
-                <Clock className="size-3.5 text-amber-700" />
-                Appeal Under Grantor Review
-              </Badge>
-            ) : (
-              <Badge className="bg-rose-50 text-rose-900 border-rose-300 text-xs font-semibold gap-1.5 py-1 px-3">
-                <AlertTriangle className="size-3.5 text-rose-600" />
-                Action Required • File Appeal
-              </Badge>
-            )}
-          </div>
         </div>
 
         {/* Academic Details Box */}
-        <div className="rounded-xl border border-amber-200/80 bg-white/80 p-5 space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-center">
-            <div className="rounded-lg bg-amber-50/50 p-3 border border-amber-100">
-              <span className="text-[10px] uppercase font-bold text-muted-foreground block">Flagged Semester</span>
-              <span className="text-sm font-bold text-navy mt-0.5 block">
+        <div className="rounded-xl border border-border/70 bg-white/80 p-3.5 space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+            <div>
+              <span className="text-[11px] font-medium text-muted-foreground block">Flagged Semester</span>
+              <span className="font-bold text-navy mt-0.5 block">
                 {lock.academic_year && lock.semester ? `${lock.academic_year} • ${lock.semester}` : "Previous Term"}
               </span>
             </div>
-            <div className="rounded-lg bg-amber-50/50 p-3 border border-amber-100">
-              <span className="text-[10px] uppercase font-bold text-muted-foreground block">Term GWA</span>
-              <span className="text-sm font-bold text-navy mt-0.5 block tabular-nums">
+            <div>
+              <span className="text-[11px] font-medium text-muted-foreground block">Term GWA</span>
+              <span className="font-bold text-navy mt-0.5 block tabular-nums">
                 {lock.gpa != null ? Number(lock.gpa).toFixed(2) : "—"}
               </span>
             </div>
-            <div className="rounded-lg bg-amber-50/50 p-3 border border-amber-100">
-              <span className="text-[10px] uppercase font-bold text-muted-foreground block">Review Flag</span>
-              <span className="text-xs font-bold text-rose-700 mt-1 block">
+            <div>
+              <span className="text-[11px] font-medium text-muted-foreground block">Academic Status</span>
+              <span className="font-bold text-rose-700 mt-0.5 block">
                 {lock.evaluation_flag || "Academic Standing Review"}
               </span>
             </div>
           </div>
 
-          <p className="text-xs text-stone-700 leading-relaxed">
+          <p className="text-xs text-stone-600 leading-relaxed border-t border-border/50 pt-2.5">
             {isPending
               ? "To ensure focus on your scholarship appeal, Certificate of Registration (COR) and Statement of Account (SOA) uploads are temporarily locked. Once the Grantor grants your appeal and lifts probation, start-of-term enrollment will automatically unlock so you can submit your matriculation credentials."
               : isDiscontinued
@@ -108,20 +126,36 @@ export function EnrollmentAcademicLockCard({ lock }: EnrollmentAcademicLockCardP
           </p>
         </div>
 
-        {/* Action Buttons */}
+        {/* Action Button Footer */}
         {!isDiscontinued && (
-          <div className="flex justify-end pt-2">
+          <div className="flex items-center justify-between gap-3 pt-1 border-t border-border/50">
+            <span className="text-xs text-muted-foreground hidden sm:inline">
+              {isPending
+                ? "Track the decision status on your grades dashboard."
+                : "Submit your appeal statement and supporting documents in Scholar Grades."}
+            </span>
             <Button
               asChild
-              size="lg"
-              className={`h-11 sm:h-12 px-6 text-sm font-bold gap-2.5 rounded-xl text-white shadow-md transition-all hover:scale-[1.01] active:scale-[0.99] w-full sm:w-auto ${
-                isPending ? "bg-amber-700 hover:bg-amber-800" : "bg-rose-700 hover:bg-rose-800"
+              className={`h-9 px-4 text-xs font-semibold gap-2 rounded-lg cursor-pointer ml-auto text-white! !text-white ${
+                isPending
+                  ? "bg-amber-700 hover:bg-amber-800 text-white! !text-white"
+                  : "bg-[#0a4f42] hover:bg-[#0a4f42]/90 text-white! !text-white"
               }`}
             >
-              <Link href="/ScholarGrade">
-                {isPending ? <Clock className="size-4" /> : <FileText className="size-4" />}
-                <span>{isPending ? "Track Appeal Verdict in Grades" : "Go to Scholar Grades & File Appeal"}</span>
-                <ArrowRight className="size-4" />
+              <Link
+                href="/ScholarGrade"
+                style={{ color: "#ffffff" }}
+                className="text-white! !text-white inline-flex items-center gap-2"
+              >
+                {isPending ? (
+                  <Clock className="size-3.5 text-white" />
+                ) : (
+                  <FileText className="size-3.5 text-white" />
+                )}
+                <span style={{ color: "#ffffff" }} className="text-white! !text-white">
+                  {isPending ? "View Appeal Status" : "File Academic Appeal"}
+                </span>
+                <ArrowRight className="size-3.5 text-white" />
               </Link>
             </Button>
           </div>
