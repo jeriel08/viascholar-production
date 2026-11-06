@@ -213,6 +213,7 @@ export async function submitScholarOfficialReceipt(
     or_number: string;
     or_payment_date: string;
     file_url: string;
+    or_amount?: number;
     file_name?: string;
     remarks?: string;
     extracted_data?: ExtractedOfficialReceiptData | null;

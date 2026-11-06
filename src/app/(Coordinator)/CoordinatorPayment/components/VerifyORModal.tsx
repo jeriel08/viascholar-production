@@ -205,17 +205,26 @@ export function VerifyORModal({ disbursement, open, onClose, onSuccess }: Verify
                         </strong>
                       </div>
                     )}
-                    {disbursement.or_document.extracted_data.amount_paid != null && (
-                      <div>
-                        <span className="text-slate-500">Amount: </span>
-                        <strong className="text-emerald-800 font-semibold">
-                          ₱
-                          {Number(disbursement.or_document.extracted_data.amount_paid).toLocaleString("en-PH", {
-                            minimumFractionDigits: 2,
-                          })}
-                        </strong>
-                      </div>
-                    )}
+                    {disbursement.or_document.extracted_data.amount_paid != null && (() => {
+                      const orAmt = Number(disbursement.or_document.extracted_data.amount_paid);
+                      const chkAmt = Number(disbursement.amount || 0);
+                      const isMatch = Math.abs(orAmt - chkAmt) <= 0.01;
+                      return (
+                        <div>
+                          <span className="text-slate-500">Amount: </span>
+                          <strong className={isMatch ? "text-emerald-800 font-semibold" : "text-rose-600 font-bold"}>
+                            ₱{orAmt.toLocaleString("en-PH", { minimumFractionDigits: 2 })}
+                          </strong>
+                          <span
+                            className={`ml-1 text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                              isMatch ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"
+                            }`}
+                          >
+                            {isMatch ? "Match" : "Mismatch"}
+                          </span>
+                        </div>
+                      );
+                    })()}
                     {disbursement.or_document.extracted_data.student_name && (
                       <div className="col-span-2 truncate">
                         <span className="text-slate-500">Payor: </span>

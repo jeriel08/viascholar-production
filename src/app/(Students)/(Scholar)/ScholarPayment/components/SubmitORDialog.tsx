@@ -2,6 +2,7 @@
 
 import {
   AlertCircle,
+  AlertTriangle,
   Building2,
   Calendar,
   Camera,
@@ -14,6 +15,7 @@ import {
   UploadCloud,
   User,
   X,
+  XCircle,
 } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
@@ -41,16 +43,26 @@ export function SubmitORDialog({ disbursement, open, onClose, onSuccess }: Submi
   const [fileName, setFileName] = useState("");
   const [orNumber, setOrNumber] = useState("");
   const [extractedData, setExtractedData] = useState<ExtractedOfficialReceiptData | null>(null);
+  const [manualAmount, setManualAmount] = useState("");
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   if (!open || !disbursement) return null;
+
+  const expectedAmount = Number(disbursement.amount || 0);
+  const detectedAmount = extractedData?.amount_paid != null ? Number(extractedData.amount_paid) : null;
+  const effectiveAmount = detectedAmount ?? (manualAmount ? parseFloat(manualAmount) : null);
+  const isAmountMismatch =
+    effectiveAmount != null && Math.abs(effectiveAmount - expectedAmount) > 0.01;
+  const isAmountMatching =
+    effectiveAmount != null && Math.abs(effectiveAmount - expectedAmount) <= 0.01;
 
   const handleClose = () => {
     setFileUrl("");
     setFileName("");
     setOrNumber("");
     setExtractedData(null);
+    setManualAmount("");
     onClose();
   };
 
@@ -64,13 +76,22 @@ export function SubmitORDialog({ disbursement, open, onClose, onSuccess }: Submi
 
       setFileUrl(res.file_url);
       setFileName(res.file_name);
+      setManualAmount("");
 
       if (res.extracted_data) {
         setExtractedData(res.extracted_data);
         if (res.extracted_data.or_number) {
           setOrNumber(res.extracted_data.or_number);
         }
-        toast.success("Receipt scanned successfully!");
+        const scannedAmount =
+          res.extracted_data.amount_paid != null ? Number(res.extracted_data.amount_paid) : null;
+        if (scannedAmount != null && Math.abs(scannedAmount - expectedAmount) > 0.01) {
+          toast.error(
+            `Receipt Rejected: Detected amount (₱${scannedAmount.toLocaleString("en-PH", { minimumFractionDigits: 2 })}) does not match the check disbursement (₱${expectedAmount.toLocaleString("en-PH", { minimumFractionDigits: 2 })}).`
+          );
+        } else {
+          toast.success("Receipt scanned successfully!");
+        }
       } else {
         toast.success("Official Receipt uploaded.");
       }
@@ -88,6 +109,18 @@ export function SubmitORDialog({ disbursement, open, onClose, onSuccess }: Submi
       return;
     }
 
+    if (isAmountMismatch) {
+      toast.error(
+        `Submission blocked: The receipt amount (₱${effectiveAmount?.toLocaleString("en-PH", { minimumFractionDigits: 2 })}) does not match the check disbursement amount (₱${expectedAmount.toLocaleString("en-PH", { minimumFractionDigits: 2 })}).`
+      );
+      return;
+    }
+
+    if (detectedAmount === null && !manualAmount) {
+      toast.error("Please confirm the amount paid on the receipt before submitting.");
+      return;
+    }
+
     const orNum = orNumber.trim();
     if (!orNum) {
       toast.error("Please enter or verify the Official Receipt (OR) Number.");
@@ -102,6 +135,7 @@ export function SubmitORDialog({ disbursement, open, onClose, onSuccess }: Submi
         or_number: orNum,
         or_payment_date: payDate,
         file_url: fileUrl,
+        or_amount: effectiveAmount ?? undefined,
         file_name: fileName || undefined,
         extracted_data: extractedData ? { ...extractedData, or_number: orNum } : undefined,
       });
@@ -229,6 +263,89 @@ export function SubmitORDialog({ disbursement, open, onClose, onSuccess }: Submi
             )}
           </div>
 
+          {/* Amount Validation & Policy Feedback */}
+          {fileUrl && isAmountMismatch && (
+            <div className="p-4 bg-rose-50 border-2 border-rose-300 rounded-xl space-y-2.5 text-xs text-rose-950 animate-in fade-in duration-200">
+              <div className="flex items-center gap-2 text-rose-800 font-bold">
+                <XCircle className="size-4.5 text-rose-600 shrink-0" />
+                <span>Receipt Rejected: Amount Mismatch</span>
+              </div>
+              <p className="text-[11px] leading-relaxed text-rose-800">
+                The amount on this receipt (
+                <strong className="text-rose-900 font-mono">
+                  ₱{effectiveAmount?.toLocaleString("en-PH", { minimumFractionDigits: 2 })}
+                </strong>
+                ) does not match the issued tuition check of{" "}
+                <strong className="text-rose-900 font-mono">
+                  ₱{expectedAmount.toLocaleString("en-PH", { minimumFractionDigits: 2 })}
+                </strong>
+                .
+              </p>
+              <div className="flex items-center justify-between p-2 bg-rose-100/70 rounded-lg text-[11px] font-semibold text-rose-900 border border-rose-200">
+                <span>Discrepancy:</span>
+                <span className="font-mono font-bold text-rose-700">
+                  -₱{Math.abs((effectiveAmount || 0) - expectedAmount).toLocaleString("en-PH", { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+              <p className="text-[11px] text-rose-700">
+                According to scholarship financial policy, submitted Official Receipts must account for the exact check amount. Submission is blocked until a matching receipt is uploaded.
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setFileUrl("");
+                  setFileName("");
+                  setOrNumber("");
+                  setExtractedData(null);
+                  setManualAmount("");
+                }}
+                className="h-7 text-xs font-semibold text-rose-700 border-rose-300 hover:bg-rose-100/70"
+              >
+                Upload Correct Receipt
+              </Button>
+            </div>
+          )}
+
+          {fileUrl && isAmountMatching && (
+            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-xs text-emerald-900">
+              <div className="flex items-center gap-1.5 font-bold">
+                <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
+                <span>Receipt Amount Verified</span>
+              </div>
+              <span className="font-mono font-extrabold text-emerald-800">
+                ₱{expectedAmount.toLocaleString("en-PH", { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+          )}
+
+          {fileUrl && detectedAmount === null && (
+            <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl space-y-2 text-xs">
+              <div className="flex items-center gap-1.5 text-amber-900 font-bold">
+                <AlertTriangle className="size-3.5 text-amber-600" />
+                <span>Confirm Amount Paid on Receipt</span>
+                <span className="text-rose-500 font-bold">*</span>
+              </div>
+              <p className="text-[11px] text-amber-800">
+                The payment amount could not be read automatically. Enter the cashier total printed on your physical receipt to verify against the check:
+              </p>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">₱</span>
+                <Input
+                  id="manual_amount"
+                  type="number"
+                  step="0.01"
+                  placeholder={`Expected: ${expectedAmount.toFixed(2)}`}
+                  value={manualAmount}
+                  onChange={(e) => setManualAmount(e.target.value)}
+                  required
+                  className="h-9 pl-7 font-mono font-bold text-xs bg-white border-amber-300 focus:border-[#0a4f42] text-slate-800"
+                />
+              </div>
+            </div>
+          )}
+
           {/* Official Receipt Number (The ONLY editable field) */}
           {fileUrl && (
             <div className="space-y-1.5 p-3.5 bg-slate-50/80 border border-line rounded-xl">
@@ -289,7 +406,11 @@ export function SubmitORDialog({ disbursement, open, onClose, onSuccess }: Submi
                 )}
                 {extractedData.amount_paid != null && (
                   <div className="flex items-center gap-1.5 text-slate-700">
-                    <span className="font-semibold text-emerald-800">
+                    <span
+                      className={`font-semibold ${
+                        isAmountMismatch ? "text-rose-700" : "text-emerald-800"
+                      }`}
+                    >
                       Amount: ₱{Number(extractedData.amount_paid).toLocaleString("en-PH", { minimumFractionDigits: 2 })}
                     </span>
                   </div>
@@ -327,11 +448,29 @@ export function SubmitORDialog({ disbursement, open, onClose, onSuccess }: Submi
             </Button>
             <Button
               type="submit"
-              disabled={submitting || !fileUrl || !orNumber.trim()}
-              className="h-9 rounded-xl bg-[#0a4f42] hover:bg-[#083c32] text-white text-xs font-bold px-5 gap-1.5"
+              disabled={
+                submitting ||
+                !fileUrl ||
+                !orNumber.trim() ||
+                isAmountMismatch ||
+                (detectedAmount === null && !manualAmount)
+              }
+              className={`h-9 rounded-xl text-xs font-bold px-5 gap-1.5 transition-colors ${
+                isAmountMismatch
+                  ? "bg-rose-600 hover:bg-rose-700 text-white cursor-not-allowed opacity-90"
+                  : "bg-[#0a4f42] hover:bg-[#083c32] text-white"
+              }`}
             >
-              {submitting ? <Loader2 className="size-3.5 animate-spin" /> : <CheckCircle2 className="size-3.5" />}
-              <span>Confirm & Submit Receipt</span>
+              {submitting ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : isAmountMismatch ? (
+                <XCircle className="size-3.5" />
+              ) : (
+                <CheckCircle2 className="size-3.5" />
+              )}
+              <span>
+                {isAmountMismatch ? "Submission Blocked (Wrong Amount)" : "Confirm & Submit Receipt"}
+              </span>
             </Button>
           </div>
         </form>
