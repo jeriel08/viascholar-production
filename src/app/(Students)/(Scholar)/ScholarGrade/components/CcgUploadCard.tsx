@@ -835,6 +835,7 @@ export function CcgUploadCard({ onSuccess, latestReport, onOpenAppeal }: CcgUplo
               semester={semester}
               setSemester={setSemester}
               gradeItems={gradeItems}
+              enrolledSubjects={currentEnrollment?.enrolled_subjects || []}
               setGradeItems={setGradeItems}
               previewGwa={previewGwa()}
               discarding={discarding}
