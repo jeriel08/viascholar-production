@@ -50,6 +50,7 @@ interface PageHeaderProps {
   actions?: React.ReactNode;
   children?: React.ReactNode;
   className?: string;
+  notificationPlacement?: "start" | "end";
 }
 
 function formatRelativeTime(isoString: string): string {
@@ -165,10 +166,131 @@ export function PageHeader({
   actions,
   children,
   className = "",
+  notificationPlacement = "start",
 }: PageHeaderProps) {
   const { toggleMobile } = useSidebar();
   const { notifications, unreadCount, markAsRead, markAllAsRead, clearAll } = useNotifications();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  const notificationBellNode = (
+    <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
+      <DropdownMenuTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="relative size-9 rounded-full border-line/80 bg-white text-navy hover:bg-tint hover:text-navy"
+          aria-label="Notifications"
+        >
+          <Bell className="size-4 text-navy" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 flex size-4.5 items-center justify-center rounded-full bg-red-600 text-[0.62rem] font-bold text-white ring-2 ring-white">
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </span>
+          )}
+        </Button>
+      </DropdownMenuTrigger>
+
+      <DropdownMenuContent
+        align="end"
+        sideOffset={8}
+        className="w-80 sm:w-96 rounded-2xl border border-line bg-white p-0 shadow-xl"
+      >
+        <div className="flex items-center justify-between border-b border-line/60 px-4 py-3 bg-[#FAF9F7]/60">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-navy">Notifications</span>
+            {unreadCount > 0 && (
+              <Badge className="h-5 rounded-full bg-amber-100 text-amber-900 border-amber-300 px-2 text-[0.62rem] font-bold">
+                {unreadCount} new
+              </Badge>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {unreadCount > 0 && (
+              <button
+                type="button"
+                onClick={() => markAllAsRead()}
+                className="flex items-center gap-1 text-[0.68rem] font-semibold text-muted-foreground hover:text-navy transition-colors"
+              >
+                <CheckCheck className="size-3" />
+                Mark all read
+              </button>
+            )}
+            {notifications.length > 0 && (
+              <button
+                type="button"
+                onClick={() => clearAll()}
+                className="text-muted-foreground hover:text-red-600 transition-colors p-1"
+                title="Clear all"
+              >
+                <Trash2 className="size-3" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="max-h-80 overflow-y-auto divide-y divide-line/40">
+          {notifications.length === 0 ? (
+            <div className="flex flex-col items-center justify-center p-8 text-center text-muted-foreground">
+              <div className="mb-2.5 flex size-10 items-center justify-center rounded-full bg-tint">
+                <Bell className="size-4.5 opacity-40 text-navy" />
+              </div>
+              <p className="text-xs font-semibold text-navy">No notifications yet</p>
+              <p className="text-[0.7rem] text-muted-foreground mt-0.5">
+                You're all caught up on applications and real-time updates!
+              </p>
+            </div>
+          ) : (
+            notifications.map((n) => {
+              const inner = (
+                <>
+                  <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-tint ring-1 ring-border/40">
+                    {getCategoryIcon(n.category)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-1 mb-0.5">
+                      <p
+                        className={`text-xs truncate ${!n.read ? "font-bold text-navy" : "font-medium text-foreground"}`}
+                      >
+                        {n.title}
+                      </p>
+                      <span className="text-[0.62rem] text-muted-foreground shrink-0">
+                        {formatRelativeTime(n.timestamp)}
+                      </span>
+                    </div>
+                    <p className="text-[0.72rem] text-muted-foreground leading-relaxed line-clamp-2">{n.message}</p>
+                  </div>
+                  {!n.read && <span className="size-2 rounded-full bg-amber shrink-0 mt-1.5 ring-2 ring-white" />}
+                </>
+              );
+
+              const itemClass = `flex w-full items-start gap-3 p-3 text-left transition-colors hover:bg-tint/40 ${
+                !n.read ? "bg-amber-50/40" : ""
+              }`;
+
+              return n.link ? (
+                <Link
+                  key={n.id}
+                  href={n.link}
+                  onClick={() => {
+                    markAsRead(n.id);
+                    setDropdownOpen(false);
+                  }}
+                  className={itemClass}
+                >
+                  {inner}
+                </Link>
+              ) : (
+                <button key={n.id} type="button" onClick={() => markAsRead(n.id)} className={itemClass}>
+                  {inner}
+                </button>
+              );
+            })
+          )}
+        </div>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 
   return (
     <header
@@ -223,128 +345,15 @@ export function PageHeader({
         {/* Optional icon-only filter dropdown */}
         {filter && <HeaderFilterButton {...filter} />}
 
-        {/* Global Notification Bell Dropdown */}
-        <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
-          <DropdownMenuTrigger asChild>
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              className="relative size-9 rounded-full border-line/80 bg-white text-navy hover:bg-tint hover:text-navy"
-              aria-label="Notifications"
-            >
-              <Bell className="size-4 text-navy" />
-              {unreadCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 flex size-4.5 items-center justify-center rounded-full bg-red-600 text-[0.62rem] font-bold text-white ring-2 ring-white">
-                  {unreadCount > 9 ? "9+" : unreadCount}
-                </span>
-              )}
-            </Button>
-          </DropdownMenuTrigger>
-
-          <DropdownMenuContent
-            align="end"
-            sideOffset={8}
-            className="w-80 sm:w-96 rounded-2xl border border-line bg-white p-0 shadow-xl"
-          >
-            <div className="flex items-center justify-between border-b border-line/60 px-4 py-3 bg-[#FAF9F7]/60">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-navy">Notifications</span>
-                {unreadCount > 0 && (
-                  <Badge className="h-5 rounded-full bg-amber-100 text-amber-900 border-amber-300 px-2 text-[0.62rem] font-bold">
-                    {unreadCount} new
-                  </Badge>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                {unreadCount > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => markAllAsRead()}
-                    className="flex items-center gap-1 text-[0.68rem] font-semibold text-muted-foreground hover:text-navy transition-colors"
-                  >
-                    <CheckCheck className="size-3" />
-                    Mark all read
-                  </button>
-                )}
-                {notifications.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => clearAll()}
-                    className="text-muted-foreground hover:text-red-600 transition-colors p-1"
-                    title="Clear all"
-                  >
-                    <Trash2 className="size-3" />
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <div className="max-h-80 overflow-y-auto divide-y divide-line/40">
-              {notifications.length === 0 ? (
-                <div className="flex flex-col items-center justify-center p-8 text-center text-muted-foreground">
-                  <div className="mb-2.5 flex size-10 items-center justify-center rounded-full bg-tint">
-                    <Bell className="size-4.5 opacity-40 text-navy" />
-                  </div>
-                  <p className="text-xs font-semibold text-navy">No notifications yet</p>
-                  <p className="text-[0.7rem] text-muted-foreground mt-0.5">
-                    You're all caught up on applications and real-time updates!
-                  </p>
-                </div>
-              ) : (
-                notifications.map((n) => {
-                  const inner = (
-                    <>
-                      <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-tint ring-1 ring-border/40">
-                        {getCategoryIcon(n.category)}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between gap-1 mb-0.5">
-                          <p
-                            className={`text-xs truncate ${!n.read ? "font-bold text-navy" : "font-medium text-foreground"}`}
-                          >
-                            {n.title}
-                          </p>
-                          <span className="text-[0.62rem] text-muted-foreground shrink-0">
-                            {formatRelativeTime(n.timestamp)}
-                          </span>
-                        </div>
-                        <p className="text-[0.72rem] text-muted-foreground leading-relaxed line-clamp-2">{n.message}</p>
-                      </div>
-                      {!n.read && <span className="size-2 rounded-full bg-amber shrink-0 mt-1.5 ring-2 ring-white" />}
-                    </>
-                  );
-
-                  const itemClass = `flex w-full items-start gap-3 p-3 text-left transition-colors hover:bg-tint/40 ${
-                    !n.read ? "bg-amber-50/40" : ""
-                  }`;
-
-                  return n.link ? (
-                    <Link
-                      key={n.id}
-                      href={n.link}
-                      onClick={() => {
-                        markAsRead(n.id);
-                        setDropdownOpen(false);
-                      }}
-                      className={itemClass}
-                    >
-                      {inner}
-                    </Link>
-                  ) : (
-                    <button key={n.id} type="button" onClick={() => markAsRead(n.id)} className={itemClass}>
-                      {inner}
-                    </button>
-                  );
-                })
-              )}
-            </div>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {/* If notificationPlacement is 'start' (default), show bell first */}
+        {notificationPlacement === "start" && notificationBellNode}
 
         {/* Custom Actions / Children */}
         {actions}
         {children}
+
+        {/* If notificationPlacement is 'end', show bell last */}
+        {notificationPlacement === "end" && notificationBellNode}
       </div>
     </header>
   );

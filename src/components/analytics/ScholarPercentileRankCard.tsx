@@ -99,7 +99,7 @@ export function ScholarPercentileRankCard({ scholars, className }: ScholarPercen
                         <div className="flex size-6.5 shrink-0 items-center justify-center rounded-full bg-[#0a4f42] text-white font-bold text-[9px]">
                           {sc.name
                             .split(" ")
-                            .map((n) => n[0])
+                            .map((n: string) => n[0])
                             .join("")
                             .slice(0, 2) || "SC"}
                         </div>
