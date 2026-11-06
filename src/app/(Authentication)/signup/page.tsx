@@ -44,22 +44,23 @@ function SignUpForm() {
   };
 
   const handleFirstNameChange = (val: string) => {
-    // Strip numerical characters
-    const clean = val.replace(/[0-9]/g, "");
+    // Strip numerical and special characters
+    const clean = val.replace(/[^a-zA-ZÀ-ÿñÑ\s]/g, "");
     setFirstName(clean);
     clearError("firstName");
   };
 
   const handleLastNameChange = (val: string) => {
-    // Strip numerical characters
-    const clean = val.replace(/[0-9]/g, "");
+    // Strip numerical and special characters
+    const clean = val.replace(/[^a-zA-ZÀ-ÿñÑ\s]/g, "");
     setLastName(clean);
     clearError("lastName");
   };
 
   const handleNameKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    // Block numbers 0-9 from key press
-    if (/^[0-9]$/.test(e.key)) {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    // Block numbers and special characters from key press
+    if (e.key.length === 1 && !/^[a-zA-ZÀ-ÿñÑ\s]$/.test(e.key)) {
       e.preventDefault();
     }
   };

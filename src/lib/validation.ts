@@ -29,13 +29,13 @@ export const addEmployeeSchema = z.object({
     .trim()
     .min(1, "First name is required.")
     .max(100, "First name is too long.")
-    .regex(/^[^0-9]+$/, "First name cannot contain numerical characters."),
+    .regex(/^[a-zA-ZÀ-ÿñÑ\s]+$/, "First name cannot contain numbers or special characters."),
   last_name: z
     .string()
     .trim()
     .min(1, "Last name is required.")
     .max(100, "Last name is too long.")
-    .regex(/^[^0-9]+$/, "Last name cannot contain numerical characters."),
+    .regex(/^[a-zA-ZÀ-ÿñÑ\s]+$/, "Last name cannot contain numbers or special characters."),
   email: z
     .string()
     .trim()
@@ -177,13 +177,13 @@ export const signUpSchema = z
       .trim()
       .min(1, "First name is required.")
       .max(100, "First name is too long.")
-      .regex(/^[^0-9]+$/, "First name cannot contain numerical characters."),
+      .regex(/^[a-zA-ZÀ-ÿñÑ\s]+$/, "First name cannot contain numbers or special characters."),
     lastName: z
       .string()
       .trim()
       .min(1, "Last name is required.")
       .max(100, "Last name is too long.")
-      .regex(/^[^0-9]+$/, "Last name cannot contain numerical characters."),
+      .regex(/^[a-zA-ZÀ-ÿñÑ\s]+$/, "Last name cannot contain numbers or special characters."),
     email: z
       .string()
       .trim()

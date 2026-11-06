@@ -57,22 +57,23 @@ function AddEmployeeFormBody({
   };
 
   const handleFirstNameChange = (val: string) => {
-    // Strip numerical characters immediately
-    const clean = val.replace(/[0-9]/g, "");
+    // Strip numerical and special characters immediately
+    const clean = val.replace(/[^a-zA-ZÀ-ÿñÑ\s]/g, "");
     set({ first_name: clean });
     clearFieldError("first_name");
   };
 
   const handleLastNameChange = (val: string) => {
-    // Strip numerical characters immediately
-    const clean = val.replace(/[0-9]/g, "");
+    // Strip numerical and special characters immediately
+    const clean = val.replace(/[^a-zA-ZÀ-ÿñÑ\s]/g, "");
     set({ last_name: clean });
     clearFieldError("last_name");
   };
 
   const handleNameKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    // Prevent typing numerical digits 0-9
-    if (/^[0-9]$/.test(e.key)) {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    // Prevent typing numbers and special characters
+    if (e.key.length === 1 && !/^[a-zA-ZÀ-ÿñÑ\s]$/.test(e.key)) {
       e.preventDefault();
     }
   };

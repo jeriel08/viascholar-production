@@ -51,6 +51,23 @@ export default function EditProfileDrawer({
     }
   }, [open, initialValues]);
 
+  const handleFirstNameChange = (val: string) => {
+    const clean = val.replace(/[^a-zA-ZÀ-ÿñÑ\s]/g, "");
+    setFirstName(clean);
+  };
+
+  const handleLastNameChange = (val: string) => {
+    const clean = val.replace(/[^a-zA-ZÀ-ÿñÑ\s]/g, "");
+    setLastName(clean);
+  };
+
+  const handleNameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.key.length === 1 && !/^[a-zA-ZÀ-ÿñÑ\s]$/.test(e.key)) {
+      e.preventDefault();
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave({
@@ -98,7 +115,8 @@ export default function EditProfileDrawer({
               <Input
                 id="edit-first-name"
                 value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
+                onChange={(e) => handleFirstNameChange(e.target.value)}
+                onKeyDown={handleNameKeyDown}
                 required
                 className={FIELD_INPUT}
               />
@@ -110,7 +128,8 @@ export default function EditProfileDrawer({
               <Input
                 id="edit-last-name"
                 value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
+                onChange={(e) => handleLastNameChange(e.target.value)}
+                onKeyDown={handleNameKeyDown}
                 required
                 className={FIELD_INPUT}
               />
